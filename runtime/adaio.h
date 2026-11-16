@@ -50,6 +50,7 @@ typedef struct AdaFile
     int pageTerminated;
     int pending[ADA_TEXT_LOOKAHEAD];
     int pendingCount;
+    int pendingLinePage; /* Optional page terminator after a live input line. */
     unsigned char pendingRaw[ADA_TEXT_LOOKAHEAD][ADA_TEXT_CAPTURE];
     int pendingRawLength[ADA_TEXT_LOOKAHEAD];
     unsigned char capture[ADA_TEXT_CAPTURE], replay[ADA_TEXT_REPLAY];

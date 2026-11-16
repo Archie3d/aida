@@ -231,6 +231,7 @@ static void unreadByte(AdaFile* file, int byte)
 static void resetInput(AdaFile* file)
 {
     file->pendingCount = file->utf8Count = 0;
+    file->pendingLinePage = 0;
     file->capturing = file->captureCount = file->replayCount = 0;
     file->pipeInput = file->byteLookahead = 0;
     file->inputEnd = file->inputError = 0;
@@ -249,6 +250,7 @@ static void dropPending(AdaFile* file)
    replay and an incomplete nonblocking UTF-8 prefix follow decoded lookahead. */
 static void restoreTextLookahead(AdaFile* file)
 {
+    file->pendingLinePage = 0;
     unsigned char bytes[ADA_TEXT_REPLAY];
     int length = 0;
     for (int i = 0; i < file->pendingCount; ++i) {
@@ -272,6 +274,10 @@ static void restoreTextLookahead(AdaFile* file)
    ungetc, while the Ada end-of-page/file predicates need several characters. */
 int __ada_text_peek(AdaFile* file, int offset)
 {
+    if (file->pendingLinePage) {
+        file->pendingLinePage = 0;
+        if (__ada_text_peek(file, 0) == '\f') { __ada_text_take(file); }
+    }
     while (file->pendingCount <= offset) {
         if (file->pendingCount == ADA_TEXT_LOOKAHEAD) { abort(); }
         file->capturing = 1;
@@ -1046,7 +1052,16 @@ static void skipLines(AdaFile* file, int spacing)
         int c;
         do { c = __ada_text_take(file); } while (c != '\n' && c != EOF);
         if (c == EOF) { if (__ada_exception == NULL) { __ada_raise(ADA_END_ERROR); } return; }
-        if (__ada_text_peek(file, 0) == '\f') { __ada_text_take(file); }
+        /* A live producer may wait for our response before sending more.
+           Defer optional page lookahead until the next text read. Regular
+           files retain eager page/line position updates. */
+#ifdef _WIN32
+        int terminal = _isatty(_fileno(file->stream));
+#else
+        int terminal = isatty(fileno(file->stream));
+#endif
+        if (terminal || pipeInput(file)) { file->pendingLinePage = 1; }
+        else if (__ada_text_peek(file, 0) == '\f') { __ada_text_take(file); }
     }
 }
 
@@ -1143,6 +1158,7 @@ static void readInteger(AdaFile* file, void* item, int size, int low, int high)
         return;
     }
 
+    file->pendingLinePage = 0;
     if (fscanf(file->stream, "%ld", &value) != 1) {
         __ada_raise(inputEnd(file) ? ADA_END_ERROR : ADA_DATA_ERROR);
         storeInteger(item, size, 0);
@@ -1257,6 +1273,7 @@ static void readReal(AdaFile* file, void* item, int size)
         return;
     }
 
+    file->pendingLinePage = 0;
     if (fscanf(file->stream, "%lf", &value) != 1) {
         __ada_raise(inputEnd(file) ? ADA_END_ERROR : ADA_DATA_ERROR);
         storeReal(item, size, 0.0);
@@ -1995,6 +2012,7 @@ static void textImmediate(AdaFile* file, char* item, int* available, int wait)
 {
     *available = 0;
     if (file->pendingCount == 0 && file->byteLookahead != 0) {
+        file->pendingLinePage = 0;
         *item = (char)(file->byteLookahead - 1);
         file->byteLookahead = 0;
         *available = 1;
@@ -2003,6 +2021,7 @@ static void textImmediate(AdaFile* file, char* item, int* available, int wait)
 #ifdef _WIN32
     if (file->pendingCount == 0 && file->replayCount == 0 && _isatty(_fileno(file->stream))) {
         if (!wait && !_kbhit()) { return; }
+        file->pendingLinePage = 0;
         *item = (char)_getch();
         *available = 1;
         return;
@@ -2055,6 +2074,7 @@ static void textImmediate(AdaFile* file, char* item, int* available, int wait)
     }
     *item = (char)c;
     *available = 1;
+    file->pendingLinePage = 0;
 }
 
 static void __ada_text_get_immediateImpl(AdaFileRef handle, char* item)

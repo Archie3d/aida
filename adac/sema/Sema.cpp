@@ -446,6 +446,9 @@ std::string Sema::mangle(const std::string& name) const
         result += encode(part) + "__";
     }
     result += encode(name);
+    // The binder owns the C entry point. This dotted suffix cannot be
+    // spelled by an Ada identifier, including the Unicode encoding.
+    if (result == "main") { result += ".ada"; }
     return result;
 }
 

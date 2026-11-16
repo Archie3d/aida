@@ -156,6 +156,19 @@ add_ada_error_test(pragmacheckerrors SOURCES elaboration/pragmacheckerrors.adb)
 add_ada_error_test(pragmaunknownerrors SOURCES elaboration/pragmaunknownerrors.adb)
 
 add_ada_test(hello SOURCES basics/hello.adb)
+add_ada_test(main SOURCES driver/main.adb)
+add_test(NAME runtime.main_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/driver/main.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/driver/main.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/main-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.main_modes PROPERTIES TIMEOUT 120)
 add_ada_test(arithmetic SOURCES numerics/arithmetic.adb)
 add_ada_test(control SOURCES control_flow/control.adb)
 add_ada_test(subprograms SOURCES subprograms/subprograms.adb)
@@ -2639,6 +2652,12 @@ add_ada_error_test(uncheckedconversionerrors SOURCES representation/uncheckedcon
 # The environment audit distinguishes resolution from full API availability.
 find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
+    add_test(NAME runtime.live_line_input
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/CheckLiveLineInput.py
+            --ada $<TARGET_FILE:ada>
+            --source ${CMAKE_CURRENT_SOURCE_DIR}/ada/io/getlinelive.adb
+            --work ${ADA_TEST_WORK_DIR}/live-line-input)
+    set_tests_properties(runtime.live_line_input PROPERTIES TIMEOUT 90)
     add_executable(native_priority_probe_fixture NativePriorityProbeFixture.c)
     add_test(NAME semantics.ceiling_locking
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/CheckCeilingSemantics.py

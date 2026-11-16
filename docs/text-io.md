@@ -34,6 +34,14 @@ counters and raise Layout_Error if the result exceeds Count'Last. Scalar fields
 move to a fresh line when needed; fields exceeding a bounded line length raise
 Layout_Error. String Put wraps by character.
 
+Get_Line and Skip_Line return after consuming LF on terminals and pipes, even
+when the producer keeps input open. Optional form-feed page lookahead is
+deferred until the next ordinary text read on those live inputs; page counters
+reflect that marker when it is consumed. Regular files retain eager page
+lookahead. Immediate and raw stream reads continue to return control bytes
+directly. `runtime.live_line_input` checks open-pipe and POSIX pseudo-terminal
+exchanges, including empty lines, buffer fills and narrow/wide line profiles.
+
 On POSIX terminals, immediate input temporarily disables canonical input and
 echo, restoring the settings on every exit. Its Available form polls without
 waiting. Windows console input uses the console byte APIs; pipe availability

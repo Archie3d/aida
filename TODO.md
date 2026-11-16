@@ -72,6 +72,18 @@ facilities and profiles have [separate goals](docs/selected-annex-followups.md).
 
 ## Completed work
 
+- [x] **IDE input and entry-point regressions.** Get_Line/Skip_Line stop at
+  LF on open terminals and pipes; optional page-marker lookahead waits for the
+  next ordinary text read. Immediate/raw reads retain control bytes and regular
+  files retain eager page accounting ([contract](docs/text-io.md)). Ada `Main`
+  uses a distinct linker symbol from the binder's C entry point. Both original
+  IDE reproducers pass, including open-pipe/POSIX pseudo-terminal input; six
+  focused Release and six ASan/UBSan checks pass, covering whole/separate-unit
+  linking, narrow/wide lines, empty/full buffers and immediate/stream transitions.
+  Darwin arm64 full-suite validation: 2,199/2,200 pass initially; C3A0027 detects
+  a concurrent compiler rebuild and passes on retry. All seven final focused
+  checks (including C3A0027) pass; `git diff --check` passes. QBE is unchanged.
+
 The [coverage matrix](docs/ada2005-coverage.md) describes supported features and
 limits. The [roadmap history](docs/roadmap-history.md) and
 [predefined-environment inventory](docs/predefined-environment.md) cover the
