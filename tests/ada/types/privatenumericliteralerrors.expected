@@ -1,0 +1,4 @@
+privatenumericliteralerrors.adb:3:39: error: a numeric literal cannot denote a private type outside its defining package
+privatenumericliteralerrors.adb:5:45: error: initial value is not compatible with the declared subtype; expected 'Time_Span', found 'universal integer'
+privatenumericliteralerrors.adb:5:18: note: object subtype is declared here
+privatenumericliteralerrors.adb:11:41: error: a numeric literal cannot denote a private type outside its defining package

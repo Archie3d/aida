@@ -72,6 +72,18 @@ facilities and profiles have [separate goals](docs/selected-annex-followups.md).
 
 ## Completed work
 
+- [x] **Private numeric overload compatibility.** Universal numeric expressions
+  match only visibly numeric types; private integer/real/fixed completions cannot
+  contribute literal or named-number overload candidates in clients. The IDE
+  real-time visibility reproducer compiles, integer width arithmetic computes
+  18, constructed span arithmetic remains valid and genuine public numeric
+  ambiguities remain diagnosed. Tests also cover illegal private initialization
+  and legal full-view uses ([contract](docs/operator-visibility.md)). Darwin
+  arm64 validation: all 2,208 Release checks pass (314 ACATS), all 321 selected
+  diagnostic/resolution checks pass and all 11 focused ASan/UBSan checks pass.
+  Whole/per-unit execution and deterministic output are covered;
+  `git diff --check` passes. QBE is unchanged.
+
 - [x] **IDE input and entry-point regressions.** Get_Line/Skip_Line stop at
   LF on open terminals and pipes; optional page-marker lookahead waits for the
   next ordinary text read. Immediate/raw reads retain control bytes and regular

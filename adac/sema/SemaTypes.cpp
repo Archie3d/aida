@@ -2629,6 +2629,9 @@ bool Sema::typesCompatible(Type* target, Type* source) const
         // for a real value, and the other way round.
         Type* universal = isUniversal(left) ? left : right;
         Type* concrete = isUniversal(left) ? right : left;
+        // Universal numeric expressions only match a visibly numeric view.
+        // A private completion must not add candidates during overload discovery.
+        if (!representationVisible(concrete)) { return false; }
         if (universal->kind == TypeKind::UniversalInteger) {
             return concrete->kind == TypeKind::Integer;
         }

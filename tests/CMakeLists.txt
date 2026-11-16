@@ -260,6 +260,26 @@ function(add_determinism_test name)
 endfunction()
 
 add_determinism_test(sizeclauses SOURCE representation/sizeclauses.adb)
+foreach(visibility_case timevisibility privatenumericresolution)
+    add_ada_test(${visibility_case} SOURCES ${visibility_case}.adb)
+    add_determinism_test(${visibility_case} SOURCE ${visibility_case}.adb)
+    ada_test_fixture(visibility_source "${visibility_case}.adb")
+    ada_test_fixture(visibility_expected "${visibility_case}.expected")
+    add_test(NAME runtime.${visibility_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+            -DSOURCE=${visibility_source} -DEXPECTED=${visibility_expected}
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${visibility_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${visibility_case} determinism.${visibility_case}
+        runtime.${visibility_case}_modes PROPERTIES TIMEOUT 120)
+endforeach()
+add_ada_error_test(privatenumericliteralerrors SOURCES types/privatenumericliteralerrors.adb)
+add_ada_error_test(visiblenumericambiguity SOURCES subprograms/visiblenumericambiguity.adb)
 add_determinism_test(windowsfloatparameters SOURCE numerics/windowsfloatparameters.adb)
 add_determinism_test(staticarithmetic SOURCE numerics/staticarithmetic.adb)
 set_tests_properties(ada.staticarithmetic error.staticarithmeticerrors

@@ -19,6 +19,13 @@ are excluded from the visible part of public children. Missing direct/use
 visibility produces diagnostics instead of falling through to predefined
 arithmetic or equality.
 
+Universal numeric expressions match only visibly numeric types. A private
+integer, floating or fixed-point completion cannot make a literal or named
+number match a client's operator/function parameter ([RM 7.3](https://www.adaic.org/resources/add_content/standards/22rm/html/RM-7-3.html)).
+The full view remains usable inside its defining package. Operator preference
+rules are unchanged: genuinely applicable predefined and user-defined profiles
+can still be ambiguous.
+
 Package-qualified calls such as `P."="` resolve both explicit and implicit
 operators declared in P. The prefix does not import operators through a
 subtype or a use clause. Named actuals match predefined Left/Right (unary
@@ -42,3 +49,10 @@ qualification, private operators, homograph/formal-name conflicts and genuine
 ambiguity, with private/public-child legal controls. The compiler passes
 ASan/UBSan for these fixtures and unchanged C840001/C84008A/C84009A; all three
 ACATS cases execute as PASS and join the strict suite. B840001 stays ungraded.
+
+`timevisibility` verifies integer arithmetic alongside `Ada.Real_Time` use-type
+clauses and arithmetic on constructed spans. `privatenumericresolution` covers
+private integer/real/fixed overloads, named numbers and legal full-view uses;
+both run whole/per-unit/deterministic compilation. `privatenumericliteralerrors`
+rejects private numeric initialization, and `visiblenumericambiguity` preserves
+the corresponding ambiguity when the numeric representation is public.
