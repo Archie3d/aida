@@ -172,6 +172,14 @@ static void* runWorker(void* argument)
         void* arena = NULL;
         void* collection = __ada_collection_create(&owner, &arena);
         CHECK(collection != NULL);
+        /* Alternate small registries and indexed registries while all workers
+           register, finalize and unlink concurrently. */
+        if (i % 2 == 0) {
+            enum { kRetainedObjects = 96 };
+            for (int n = 0; n < kRetainedObjects; ++n) {
+                CHECK(__ada_collection_allocate(collection, sizeof(int)) != NULL);
+            }
+        }
         Object* object = __ada_collection_allocate(collection, sizeof *object);
         CHECK(object != NULL);
         *object = (Object) { &context, &count, i % 2 };

@@ -1,0 +1,95 @@
+{
+  "host": "macOS-27.2.1-arm64-arm-64bit-Mach-O",
+  "source_revision": "305762305386f00c5583508b67ad65c06e57602f",
+  "method": "Same Release compiler and archive members; baseline replaces only adart.c.o with HEAD source compiled using matching -O3 -DNDEBUG -fPIC flags. Seven alternating pairs per retained count, after one warmup per executable and count. Timed work excludes startup and retained allocation creation/cleanup. No concurrent correctness suite.",
+  "workloads": {
+    "0": {
+      "seconds": {
+        "before": [
+          0.0079500005,
+          0.0079150004,
+          0.0079460004,
+          0.0078990003,
+          0.0078999996,
+          0.0079570003,
+          0.0078980001
+        ],
+        "after": [
+          0.0078560002,
+          0.0078670001,
+          0.00789,
+          0.0078389999,
+          0.0079190005,
+          0.0078020003,
+          0.00789
+        ]
+      },
+      "median_seconds": {
+        "before": 0.0079150004,
+        "after": 0.0078670001
+      },
+      "before_over_after": 1.006101474436234
+    },
+    "1000": {
+      "seconds": {
+        "before": [
+          0.0396290002,
+          0.0398030002,
+          0.0393949999,
+          0.0403100001,
+          0.0394209996,
+          0.0394639997,
+          0.040511
+        ],
+        "after": [
+          0.0078809997,
+          0.0079709999,
+          0.0079020001,
+          0.0079319999,
+          0.0078840004,
+          0.0078670001,
+          0.0078959996
+        ]
+      },
+      "median_seconds": {
+        "before": 0.0396290002,
+        "after": 0.0078959996
+      },
+      "before_over_after": 5.018870593661124
+    },
+    "6000": {
+      "seconds": {
+        "before": [
+          0.1953499997,
+          0.1949180001,
+          0.194561,
+          0.1960270004,
+          0.1945350002,
+          0.1960450001,
+          0.1958240001
+        ],
+        "after": [
+          0.0080660004,
+          0.0079939999,
+          0.0079359999,
+          0.0078560002,
+          0.0079680001,
+          0.0079389997,
+          0.0078750001
+        ]
+      },
+      "median_seconds": {
+        "before": 0.1953499997,
+        "after": 0.0079389997
+      },
+      "before_over_after": 24.606374490730868
+    }
+  },
+  "sha256": {
+    "baseline_runtime": "3f2e5e0ed1f479405c2c02ec7bb5a6a9aece40695de69bf9f5cca8769e5f2265",
+    "current_runtime": "a8fa410bbf7c4097d39c2da76b081a6d2b4b5cd84ed1e1274f2df84929aa109a",
+    "compiler": "43acad59c31bbe87a2db9b63e9af074000b7232503e387a8e68f405ae69f2f7b",
+    "benchmark": "54e2d95712d3d63ce318fb6df93342fb55748494b26e29000a21a2345547646c",
+    "runtime_source": "bb39ef16475511784615f06ee3696f6ba324e3761ef1a5078fd869905de67b45"
+  }
+}

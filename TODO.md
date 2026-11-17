@@ -72,6 +72,20 @@ facilities and profiles have [separate goals](docs/selected-annex-followups.md).
 
 ## Completed work
 
+- [x] **IDE temporary-string finalization scaling.** Index heap finalization
+  chain ownership alongside allocation addresses and stop successful local
+  removal before searching shared registrations. Preserve runtime ABI,
+  task synchronization, deferred publication and optional-index failure
+  fallbacks. Expanded runtime controls cover ownership, resize/failure,
+  arbitrary cleanup and four concurrent workers. The original IDE reproducer
+  retains checksum 12000; local Darwin arm64 medians stay near 7.9 ms at
+  0/1,000/6,000 live allocations, versus 195.4 ms previously at 6,000.
+  [Contract and matched evidence](docs/finalization-scaling.md). All 50 focused
+  Release checks pass; the full 2,208 checks pass with one rebuild-guard retry.
+  Both expanded runtime CTests pass under ASan/UBSan and TSan;
+  `git diff --check` passes. QBE is unchanged. Native host confirmation and
+  the broader Phase 13 performance goal remain open.
+
 - [x] **Private numeric overload compatibility.** Universal numeric expressions
   match only visibly numeric types; private integer/real/fixed completions cannot
   contribute literal or named-number overload candidates in clients. The IDE

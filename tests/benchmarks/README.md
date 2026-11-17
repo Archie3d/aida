@@ -418,3 +418,9 @@ closed. Further profiling is deferred in favor of compiler functionality; existi
 reports are retained without a new production speedup claim. Fixed-corpus helper
 probes require their recorded older compiler shapes and are not adapted to each
 subsequent functional change. Routine correctness CI remains separate.
+
+The manual [finalization scaling reproducer](../../docs/finalization-scaling.md)
+keeps unrelated integer allocations alive while timing fixed temporary-string
+work. Run `finalizationscaling.adb` with counts 0, 1000 and 6000; each checksum
+must be 12000. Ownership and failure checks run in the runtime CTests; elapsed
+time is not a routine CI assertion.

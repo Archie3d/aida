@@ -1340,19 +1340,23 @@ static AdaFinalization* findFinalization(void* object)
     return NULL;
 }
 
-static void unlinkFinalization(AdaFinalization** link, AdaFinalization* record)
+static int unlinkFinalization(AdaFinalization** link, AdaFinalization* record)
 {
     while (*link != NULL && *link != record) {
         link = &(*link)->registeredNext;
     }
     if (*link != NULL) {
         *link = record->registeredNext;
+        return 1;
     }
+    return 0;
 }
 
 static void unregisterFinalization(AdaFinalization* record)
 {
-    unlinkFinalization(&__ada_task_context()->registeredFinalizations, record);
+    /* A registration belongs to exactly one registry. Ordinary local cleanup
+       must not walk unrelated heap finalizations after removing its record. */
+    if (unlinkFinalization(&__ada_task_context()->registeredFinalizations, record)) { return; }
     __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
     unlinkFinalization(&__ada_main_context.sharedFinalizations, record);
     __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
@@ -1522,6 +1526,7 @@ typedef struct AdaAllocation
     struct AdaAllocation* previous;
     struct AdaAllocation* registeredPrevious;
     struct AdaAllocation* hashNext;
+    struct AdaAllocation* ownerHashNext;
     AdaCollection* collection;
     void* object;
     AdaFinalization* finalizations;
@@ -1540,6 +1545,7 @@ typedef struct AdaAllocation
 typedef struct AdaAllocationIndex
 {
     size_t capacity;
+    /* Object buckets followed by finalization-owner buckets, both capacity long. */
     AdaAllocation* buckets[];
 } AdaAllocationIndex;
 
@@ -1585,8 +1591,8 @@ static int rebuildAllocationIndexLocked(void)
         if (capacity > SIZE_MAX / 2) { return 0; }
         capacity *= 2;
     }
-    if (capacity > (SIZE_MAX - sizeof(AdaAllocationIndex)) / sizeof(AdaAllocation*)) { return 0; }
-    AdaAllocationIndex* index = calloc(1, sizeof *index + capacity * sizeof *index->buckets);
+    if (capacity > (SIZE_MAX - sizeof(AdaAllocationIndex)) / (2 * sizeof(AdaAllocation*))) { return 0; }
+    AdaAllocationIndex* index = calloc(1, sizeof *index + 2 * capacity * sizeof *index->buckets);
     if (index == NULL) { return 0; }
     index->capacity = capacity;
     AdaAllocation* oldest = environment->registeredAllocations;
@@ -1594,6 +1600,9 @@ static int rebuildAllocationIndexLocked(void)
     for (AdaAllocation* allocation = oldest; allocation != NULL; allocation = allocation->registeredPrevious) {
         size_t bucket = allocationBucket(allocation->object, capacity);
         allocation->hashNext = index->buckets[bucket];
+        index->buckets[bucket] = allocation;
+        bucket = capacity + allocationBucket(&allocation->finalizations, capacity);
+        allocation->ownerHashNext = index->buckets[bucket];
         index->buckets[bucket] = allocation;
     }
     environment->allocationIndex = index;
@@ -1738,8 +1747,12 @@ static void poolDeallocate(AdaCollection* collection, void* object, int64_t size
    objects. A program must synchronize publication and access to each object. */
 static int allocationOwnsChain(AdaFinalization** owner)
 {
-    for (AdaAllocation* allocation = __ada_main_context.registeredAllocations; allocation != NULL;
-         allocation = allocation->registeredNext) {
+    AdaAllocationIndex* index = __ada_main_context.allocationIndex;
+    AdaAllocation* first = index != NULL
+        ? index->buckets[index->capacity + allocationBucket(owner, index->capacity)]
+        : __ada_main_context.registeredAllocations;
+    for (AdaAllocation* allocation = first; allocation != NULL;
+         allocation = index != NULL ? allocation->ownerHashNext : allocation->registeredNext) {
         if (&allocation->finalizations == owner) {
             return 1;
         }
@@ -1789,6 +1802,14 @@ void __ada_collection_activate(void* owner)
 static void unlinkAllocation(AdaAllocation* allocation)
 {
     unhashAllocationLocked(allocation);
+    AdaAllocationIndex* index = __ada_main_context.allocationIndex;
+    if (index != NULL) {
+        size_t bucket = index->capacity + allocationBucket(&allocation->finalizations, index->capacity);
+        AdaAllocation** link = &index->buckets[bucket];
+        while (*link != allocation) { link = &(*link)->ownerHashNext; }
+        *link = allocation->ownerHashNext;
+        allocation->ownerHashNext = NULL;
+    }
     if (allocation->previous != NULL) { allocation->previous->next = allocation->next; }
     else { allocation->collection->allocations = allocation->next; }
     if (allocation->next != NULL) { allocation->next->previous = allocation->previous; }
@@ -1914,6 +1935,9 @@ static int registerAllocation(AdaCollection* collection, AdaAllocation* allocati
         AdaAllocationIndex* index = __ada_main_context.allocationIndex;
         size_t bucket = allocationBucket(allocation->object, index->capacity);
         allocation->hashNext = index->buckets[bucket];
+        index->buckets[bucket] = allocation;
+        bucket = index->capacity + allocationBucket(&allocation->finalizations, index->capacity);
+        allocation->ownerHashNext = index->buckets[bucket];
         index->buckets[bucket] = allocation;
     }
     __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);

@@ -161,6 +161,12 @@ static int checkAllocationIndex(void)
         objects[i] = __ada_collection_allocate(collection, sizeof(int));
         CHECK(objects[i] != NULL && __ada_exception == NULL);
         *objects[i] = i;
+        CHECK(allocationOwnsChain(__ada_construction_owner(objects[i])));
+        CHECK(!allocationOwnsChain(&owner));
+        __ada_allocation_reserve(objects[i], objects[i], managedFinalize);
+        CHECK(__ada_exception == NULL);
+        ++managedLive;
+        __ada_controlled_activate(objects[i], managedFinalize);
     }
     int value = 19;
     void* older = __ada_collection_begin(collection);
@@ -174,12 +180,20 @@ static int checkAllocationIndex(void)
     __ada_object_borrow(inner, &value, "shared", 2);
     int64_t alternate[] = {0, 4, 6, 3, 4};
     __ada_array_borrow(inner, &value, alternate, 1, "array");
+    CHECK(allocationOwnsChain(__ada_collection_result_owner(newer)));
+    CHECK(allocationOwnsChain(__ada_collection_result_owner(older)));
     __ada_collection_finish_sized(newer, &value, sizeof value);
     __ada_collection_finish(older, &value);
     for (int i = 256; i < kObjects; ++i) {
         objects[i] = __ada_collection_allocate(collection, sizeof(int));
         CHECK(objects[i] != NULL && __ada_exception == NULL);
         *objects[i] = i;
+        CHECK(allocationOwnsChain(__ada_construction_owner(objects[i])));
+        CHECK(!allocationOwnsChain(&owner));
+        __ada_allocation_reserve(objects[i], objects[i], managedFinalize);
+        CHECK(__ada_exception == NULL);
+        ++managedLive;
+        __ada_controlled_activate(objects[i], managedFinalize);
     }
     CHECK(__ada_construction_owner(&value) == __ada_collection_result_owner(newer));
     CHECK(__ada_access_constrained(&value, "shared") == 2);
@@ -200,6 +214,15 @@ static int checkAllocationIndex(void)
     for (int i = 0; i < kObjects; ++i) {
         int n = i * 137 % kObjects;
         CHECK(*objects[n] == n);
+        CHECK(allocationOwnsChain(__ada_construction_owner(objects[n])));
+        /* Local cleanup must leave all heap registrations available. */
+        AdaFinalization localRecord;
+        AdaFinalization* local = NULL;
+        AdaFinalization* shared = __ada_main_context.sharedFinalizations;
+        __ada_finalization_push(&local, &localRecord, &value, managedFinalize);
+        ++managedLive;
+        __ada_finalize_to(&local, NULL);
+        CHECK(__ada_main_context.sharedFinalizations == shared);
         __ada_deallocate(objects[n]);
         CHECK(__ada_exception == NULL);
     }
@@ -207,6 +230,7 @@ static int checkAllocationIndex(void)
     __ada_array_release(&arena);
     CHECK(value == 19 && liveAllocations == 0 && __ada_exception == NULL);
     CHECK(__ada_main_context.allocationIndex == NULL && __ada_main_context.allocationCount == 0);
+    CHECK(managedLive == 0 && __ada_main_context.sharedFinalizations == NULL);
     return 0;
 }
 
@@ -226,6 +250,12 @@ static int checkAllocationIndexFailure(void)
         failAfter = -1;
         CHECK(objects[i] != NULL && __ada_exception == NULL);
         *objects[i] = i;
+        CHECK(allocationOwnsChain(__ada_construction_owner(objects[i])));
+        CHECK(!allocationOwnsChain(&owner));
+        __ada_allocation_reserve(objects[i], objects[i], managedFinalize);
+        CHECK(__ada_exception == NULL);
+        ++managedLive;
+        __ada_controlled_activate(objects[i], managedFinalize);
         if (i == kAllocationIndexThreshold - 1) {
             CHECK(__ada_main_context.allocationIndex == NULL);
         }
@@ -236,6 +266,7 @@ static int checkAllocationIndexFailure(void)
     for (int i = 0; i < kObjects; ++i) {
         int n = i * 137 % kObjects;
         CHECK(*objects[n] == n);
+        CHECK(allocationOwnsChain(__ada_construction_owner(objects[n])));
         __ada_deallocate(objects[n]);
         CHECK(__ada_exception == NULL);
     }
@@ -243,6 +274,7 @@ static int checkAllocationIndexFailure(void)
     __ada_array_release(&arena);
     CHECK(liveAllocations == 0 && __ada_exception == NULL);
     CHECK(__ada_main_context.allocationIndex == NULL && __ada_main_context.allocationCount == 0);
+    CHECK(managedLive == 0 && __ada_main_context.sharedFinalizations == NULL);
     return 0;
 }
 
