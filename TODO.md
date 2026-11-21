@@ -42,11 +42,12 @@ following in dependency order:
   metadata. Register installed sources and predefined inventory entries. Keep
   target-dependent floating formats explicitly gated by 13a's contract.
   [Scalar package contract and verification](docs/interfaces-c-abi.md#scalar-packages).
-- [ ] **Character arrays and conversions.** Implement narrow, wide,
+- [x] **Character arrays and conversions.** Implement narrow, wide,
   `char16_t` and `char32_t` arrays and the conversion/termination APIs. Cover
   functional and buffer forms, counts, nonzero lower bounds, null arrays,
   embedded/missing NULs, short targets and character-mapping failures. Reuse
   caller-owned array results and cleanup paths; preserve aliased element identity.
+  [Conversion contract](docs/interfaces-c-abi.md#character-arrays-and-conversions).
 - [ ] **Native C call boundary.** Separate foreign C marshalling from
   internal runtime helper conventions. Pass compatible arrays as element
   pointers without hidden Ada lengths/descriptors; preserve mutability and

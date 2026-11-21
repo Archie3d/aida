@@ -1413,7 +1413,7 @@ add_ada_error_test(taskidentityerrors SOURCES tasks/taskidentityerrors.adb)
 
 # Numeric and array boundaries in whole/separate compilation, deterministic
 # IR, and several independent Ada task contexts.
-foreach(boundary_case realedges realtasking floatattributes floatattributetasking realvalue realvaluetasking derivedscalaroperations arraydescriptors arraydescriptortasking concatenation concattasking unsignedarraybounds)
+foreach(boundary_case realedges realtasking floatattributes floatattributetasking realvalue realvaluetasking derivedscalaroperations arraydescriptors arraydescriptortasking concatenation concattasking unsignedarraybounds interfacescharacters)
     add_ada_test(${boundary_case} SOURCES ${boundary_case}.adb)
     add_determinism_test(${boundary_case} SOURCE ${boundary_case}.adb)
     ada_test_fixture(source_path "${boundary_case}.adb")

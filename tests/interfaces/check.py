@@ -109,13 +109,16 @@ procedure Client is
     package Instance is new Tools (Model.Item);
     X : Model.Item := Instance.Identity (Model.Make);
     T : Model.Tagged_Item := (N => 4);
+    C_Text : Interfaces.C.char_array := Interfaces.C.To_C (String'("source-free"));
+    Text : String := Interfaces.C.To_Ada (C_Text);
 begin
     Helper;
     if Model.Value (X) /= 5 or else Model.Value (3) /= 4
         or else Model.Child.Extra /= 3 or else T.Next /= 5
         or else Alias.Seed /= 5 or else Extras.N + Other_Extras.N /= 8
         or else Consumer.N /= 7 or else Split.Value /= 11 or else Decl_View.N + Index_Name.N /= 7
-        or else Model.Native_Count (16#4000_0000_0000_0000#) /= 16#8000_0000_0000_0000# then
+        or else Model.Native_Count (16#4000_0000_0000_0000#) /= 16#8000_0000_0000_0000#
+        or else Text /= "source-free" then
         raise Program_Error;
     end if;
     begin raise Model.Failure; exception when Model.Failure => null; end;

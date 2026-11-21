@@ -35,4 +35,59 @@ package Interfaces.C is
     wide_nul : constant wchar_t := wchar_t'Val (0);
     char16_nul : constant char16_t := char16_t'Val (0);
     char32_nul : constant char32_t := char32_t'Val (0);
+
+    type char_array is array (size_t range <>) of aliased char;
+    pragma Pack (char_array);
+    for char_array'Component_Size use CHAR_BIT;
+
+    function To_C (Item : Character) return char;
+    function To_Ada (Item : char) return Character;
+    function Is_Nul_Terminated (Item : char_array) return Boolean;
+    function To_C (Item : String; Append_Nul : Boolean := True) return char_array;
+    function To_Ada (Item : char_array; Trim_Nul : Boolean := True) return String;
+    procedure To_C (Item : String; Target : out char_array; Count : out size_t;
+                    Append_Nul : Boolean := True);
+    procedure To_Ada (Item : char_array; Target : out String; Count : out Natural;
+                      Trim_Nul : Boolean := True);
+
+    type wchar_array is array (size_t range <>) of aliased wchar_t;
+    pragma Pack (wchar_array);
+
+    function To_C (Item : Wide_Character) return wchar_t;
+    function To_Ada (Item : wchar_t) return Wide_Character;
+    function Is_Nul_Terminated (Item : wchar_array) return Boolean;
+    function To_C (Item : Wide_String; Append_Nul : Boolean := True) return wchar_array;
+    function To_Ada (Item : wchar_array; Trim_Nul : Boolean := True) return Wide_String;
+    procedure To_C (Item : Wide_String; Target : out wchar_array; Count : out size_t;
+                    Append_Nul : Boolean := True);
+    procedure To_Ada (Item : wchar_array; Target : out Wide_String; Count : out Natural;
+                      Trim_Nul : Boolean := True);
+
+    type char16_array is array (size_t range <>) of aliased char16_t;
+    pragma Pack (char16_array);
+
+    function To_C (Item : Wide_Character) return char16_t;
+    function To_Ada (Item : char16_t) return Wide_Character;
+    function Is_Nul_Terminated (Item : char16_array) return Boolean;
+    function To_C (Item : Wide_String; Append_Nul : Boolean := True) return char16_array;
+    function To_Ada (Item : char16_array; Trim_Nul : Boolean := True) return Wide_String;
+    procedure To_C (Item : Wide_String; Target : out char16_array; Count : out size_t;
+                    Append_Nul : Boolean := True);
+    procedure To_Ada (Item : char16_array; Target : out Wide_String; Count : out Natural;
+                      Trim_Nul : Boolean := True);
+
+    type char32_array is array (size_t range <>) of aliased char32_t;
+    pragma Pack (char32_array);
+
+    function To_C (Item : Wide_Wide_Character) return char32_t;
+    function To_Ada (Item : char32_t) return Wide_Wide_Character;
+    function Is_Nul_Terminated (Item : char32_array) return Boolean;
+    function To_C (Item : Wide_Wide_String; Append_Nul : Boolean := True) return char32_array;
+    function To_Ada (Item : char32_array; Trim_Nul : Boolean := True) return Wide_Wide_String;
+    procedure To_C (Item : Wide_Wide_String; Target : out char32_array; Count : out size_t;
+                    Append_Nul : Boolean := True);
+    procedure To_Ada (Item : char32_array; Target : out Wide_Wide_String; Count : out Natural;
+                      Trim_Nul : Boolean := True);
+
+    Terminator_Error : exception;
 end Interfaces.C;

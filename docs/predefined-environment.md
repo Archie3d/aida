@@ -19,8 +19,8 @@ compatibility units, selected annex subsets and implementation extensions are
 identified separately.
 
 [Interfaces and Interfaces.C](interfaces-c-abi.md#scalar-packages) now resolve.
-The inventory records `Interfaces.C` at its scalar scope. Its character arrays,
-conversion operations and child packages remain Phase 13 work.
+`Interfaces.C` includes scalars and [character arrays and conversions](interfaces-c-abi.md#character-arrays-and-conversions).
+Its child packages remain Phase 13 work.
 
 [Ada.Storage_IO](storage-io.md) now supplies typed representation buffers and
 ordinary Read/Write procedures, including runtime-sized inline layouts and

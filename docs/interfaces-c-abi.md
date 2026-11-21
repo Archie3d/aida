@@ -3,7 +3,8 @@
 Phase 13 targets the Ada 2005 packages `Interfaces`, `Interfaces.C`,
 `Interfaces.C.Strings` and `Interfaces.C.Pointers`. The existing
 [C Import and callback subset](subprogram-access.md) provides the starting
-point. `Interfaces` and the scalar part of `Interfaces.C` are available.
+point. `Interfaces` and the scalar and character-array APIs of `Interfaces.C`
+are available.
 [Ada 2005 RM B.2](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-2.html),
 [B.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3.html),
 [B.3.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3-1.html),
@@ -164,8 +165,7 @@ C calls use the native ABI class, including the signedness of plain `char`.
 `wchar_t` derives from `Wide_Character` at 16 bits and `Wide_Wide_Character`
 at 32 bits. `char32_t` and 32-bit `wchar_t` admit the Ada `Wide_Wide_Character`
 range. Foreign character results outside the Ada type's range raise
-`Constraint_Error`. Character arrays and the `To_C`, `To_Ada` and termination
-operations follow in the next increment.
+`Constraint_Error`.
 
 The regression tests cover declarations and predicates against a C helper,
 type identity, all four overloaded intrinsic profiles through generic formal
@@ -181,3 +181,34 @@ and Ada/C scalar fixture cross-assembled for all five targets. Simulated LLP64
 and Linux arm64 facts exercised the alternate scalar layouts and the x87 and
 binary128 diagnostics, including through limited views. Native execution on
 the other four targets remains an integration check.
+
+## Character arrays and conversions
+
+`char_array`, `wchar_array`, `char16_array` and `char32_array` are unconstrained
+arrays indexed by `size_t`, with aliased components. Their components have the
+width of the corresponding C character type. The conversion pairs are `String`
+with `char_array`, `Wide_String` with either `wchar_array` or `char16_array`, and
+`Wide_Wide_String` with `char32_array`. Scalar conversions preserve the ordinal
+value of each code unit. A 32-bit `wchar_t` outside the range of `Wide_Character`
+raises `Constraint_Error` when converted to Ada.
+
+`To_C` copies all input code units and appends a NUL by default. `To_Ada` trims
+at the first NUL by default and raises `Terminator_Error` if it finds none.
+`Trim_Nul => False` copies the full array, including any NULs.
+`Is_Nul_Terminated` tests for a NUL anywhere in the array. The function results
+start at zero for `To_C` and one for `To_Ada`. An empty input with
+`Append_Nul => False` raises `Constraint_Error` in the function because a null
+`size_t` range cannot start at zero. The procedure accepts that input and
+returns a zero count. [Ada 2005 RM B.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3.html).
+
+The buffer procedures write starting at `Target'First` and raise
+`Constraint_Error` if the result exceeds `Target'Length`. They set `Count` on
+success to the number of code units written, including an appended terminator.
+`To_Ada` checks for the required NUL before writing and skips any code units
+after it when trimming. The functions use the compiler's caller-owned array
+results and exception cleanup. Tests exercise both forms in whole and per-unit
+builds, including bounds at `size_t'Last`, aliased element access, and errors.
+The conversion fixture passed with native 32-bit `wchar_t` on Darwin arm64
+and with simulated 16-bit `wchar_t` facts. All 2,220 Darwin arm64 Release checks
+and six focused ASan/UBSan checks passed.
+Passing arrays directly to native C subprograms is the next Phase 13 item.
