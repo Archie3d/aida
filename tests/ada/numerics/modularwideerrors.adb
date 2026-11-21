@@ -14,7 +14,7 @@ procedure ModularWideErrors is
     X : Word := 0;
     I : Integer;
     F : Long_Float := 1.0;
-    type Bad_Index is array (Word range <>) of Integer;
+    type Too_Many_Elements is array (Word) of Integer;
 begin
     X := Integer'Mod (1);
     X := X'Mod (1);

@@ -11,7 +11,7 @@ procedure ModularErrors is
     B : Byte := 1;
     O : Other := 1;
     I : Integer := 1;
-    for Word'Size use 32;
+    for Word'Size use 16;
 begin
     B := abs B;
     B := B + O;

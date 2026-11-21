@@ -255,16 +255,18 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
                     Value last = emitExpr(object->subtype->indexHighs[dimension].get());
                     first = wideBound(first);
                     last = wideBound(last);
+                    Value firstBound = translateArrayBound(first, axis->index);
+                    Value lastBound = translateArrayBound(last, axis->index);
                     if (dimension == 0) {
-                        destination.first = first.name;
-                        destination.last = last.name;
+                        destination.first = firstBound.name;
+                        destination.last = lastBound.name;
                     } else {
-                        destination.innerBounds.push_back({ first.name, last.name });
+                        destination.innerBounds.push_back({ firstBound.name, lastBound.name });
                     }
                     std::string check = newLabel("returnboundscheck");
                     std::string readyBounds = newLabel("returnboundsready");
                     Value nonNull { newTemp(), 'w' };
-                    line(nonNull.name + " =w csgel " + last.name + ", " + first.name);
+                    line(nonNull.name + " =w csgel " + lastBound.name + ", " + firstBound.name);
                     branch(nonNull, check, readyBounds);
                     label(check);
                     emitRangeCheck(first, axis->index, object->location);

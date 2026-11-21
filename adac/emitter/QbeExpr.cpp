@@ -123,7 +123,8 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             for (uint32_t character : literal->value) { m_data << storage << int(character) << ", "; }
             m_data << storage << "0 }\n";
         }
-        return Value {data, 'l', "1", std::to_string(literal->value.size())};
+        return Value {data, 'l', translateArrayBound(Value {"1", 'l'}, expr->type->index).name,
+            translateArrayBound(Value {std::to_string(literal->value.size()), 'l'}, expr->type->index).name};
     }
     case ExprKind::Null:
         return Value { "0", 'l' };
@@ -575,9 +576,10 @@ Value QbeEmitter::emitAddress(Expr* expr)
             Type* dimension = array;
             for (Expr* argument : call->resolvedArguments) {
                 Value originalIndex = emitExpr(argument);
-                Value index = wideBound(originalIndex);
+                Value index = translateArrayBound(originalIndex, dimension->index);
                 std::string offset = newTemp(), next = newTemp();
-                emitArrayOffset(offset, originalIndex, index, axis, arrayElementSize(axis, dimension));
+                emitArrayOffset(offset, usesBiasedArrayBounds(dimension->index) ? index : originalIndex,
+                    index, axis, arrayElementSize(axis, dimension));
                 line(next + " =l add " + address.name + ", " + offset);
                 address = Value { next, 'l' };
                 if (dimension->packedComponentBits) {
@@ -627,8 +629,10 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
             for (int dimension = 0; dimension < designated->arrayRank; ++dimension) {
                 Value first = wideBound(emitExpr(expr->subtype->indexLows[dimension].get()));
                 Value last = wideBound(emitExpr(expr->subtype->indexHighs[dimension].get()));
+                Value firstBound = translateArrayBound(first, axis->index);
+                Value lastBound = translateArrayBound(last, axis->index);
                 Value nonNull {newTemp(), 'w'};
-                line(nonNull.name + " =w csgel " + last.name + ", " + first.name);
+                line(nonNull.name + " =w csgel " + lastBound.name + ", " + firstBound.name);
                 std::string check = newLabel("allocatorboundscheck"), ready = newLabel("allocatorboundsready");
                 branch(nonNull, check, ready);
                 label(check);
@@ -636,8 +640,8 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
                 emitRangeCheck(last, axis->index, expr->location);
                 jump(ready);
                 label(ready);
-                if (dimension == 0) { bounds.first = first.name; bounds.last = last.name; }
-                else { bounds.innerBounds.push_back({first.name, last.name}); }
+                if (dimension == 0) { bounds.first = firstBound.name; bounds.last = lastBound.name; }
+                else { bounds.innerBounds.push_back({firstBound.name, lastBound.name}); }
                 axis = axis->element;
             }
             bounds = arrayView(bounds, designated);

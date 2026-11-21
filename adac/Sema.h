@@ -354,6 +354,7 @@ private:
     ExprPtr scalarBoundExpr(Type* type, bool first, const SourceLocation& location);
     bool foldStatic(Expr* expr, long long& value) const;
     bool foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) const;
+    bool foldStatic(Expr* expr, __int128& value) const;
     void validateStatic(Expr* expr, bool enclosingStatic = false, Type* expected = nullptr);
     bool exactValue(Expr* expr, ExactReal& value) const;
     bool foldFixed(Expr* expr, long long& value) const;

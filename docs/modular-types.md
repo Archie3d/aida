@@ -12,6 +12,14 @@ machine cache. Runtime modular values use unsigned bit patterns in at most
 64 bits; the helper ABI encodes modulus `2 ** 64` as zero. This encoding is
 internal and does not change `'Modulus`.
 
+Modular types through `mod 2 ** 32` use four bytes by default and support
+explicit 8-, 16-, 32- or 64-bit `Size` clauses when the representation holds
+the type's range. Full-range unsigned words use zero-extending loads and keep
+their wider arithmetic class so conversions and comparisons preserve bit 31.
+Wider modular types use eight bytes. Arrays can use the full modular range
+for indices while retaining checked signed 64-bit lengths and allocation sizes.
+[Array descriptor contract](array-descriptors.md).
+
 Static and dynamic arithmetic share a helper with unsigned 128-bit
 intermediates, including nonbinary multiplication and exponentiation. Logic,
 unsigned comparisons, membership, loop endpoints and case choices preserve the
@@ -38,14 +46,8 @@ short output string raises Layout_Error. Out actuals copy back on success.
 
 Remaining restrictions:
 
-- Array index subtypes must have signed 64-bit bounds, matching descriptor
-  ABI v2. Use a narrower subtype when indexing by a wide modular type. Array
-  elements may use the entire unsigned range.
 - Variant choices and static explicit discriminants retain signed 64-bit
   storage. Upper-half variant choices are diagnosed.
-- Types needing unsigned values above `2 ** 31 - 1` use 64-bit storage;
-  an explicit 32-bit Size clause for such a type remains diagnosed. Size may
-  select supported 8/16-bit compact layouts and 64-bit modular storage.
 - Wide character attributes, general generic staticness rules, and the broader
   Text_IO line/page accounting audit remain with Phases 7–8.
 - Hosts must support the project's existing 128-bit integer evaluation and

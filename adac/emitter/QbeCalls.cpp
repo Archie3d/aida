@@ -1193,11 +1193,27 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
     return result;
 }
 
-// Marshals a call into the run time library straight from the parameter list:
-// arrays become a pointer and a length, anything writable or composite becomes
-// an address, and everything else travels by value.
+static std::string cScalarClass(Type* type)
+{
+    if (type->kind == TypeKind::Integer) {
+        bool signedValue = scalarStorageSigned(type);
+        switch (typeSize(type)) {
+        case 1: return signedValue ? "sb" : "ub";
+        case 2: return signedValue ? "sh" : "uh";
+        case 4: return "w";
+        case 8: return "l";
+        }
+    }
+    return std::string(1, qbeClass(type));
+}
+
+// Arrays currently become a pointer and a length, anything writable or
+// composite becomes an address, and everything else travels by value.
 Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 {
+    // Runtime hooks use their established Ada-facing profiles. Foreign C
+    // imports and function pointers use the storage width and C ABI class.
+    bool nativeC = !subprogram->importAda && !subprogram->runtimeSymbol.starts_with("$__ada_");
     std::vector<std::string> arguments;
     std::vector<ArrayCopyBack> arrayCopies;
     std::vector<StorageCopyBack> storageCopies;
@@ -1232,7 +1248,6 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         Symbol* parameter = subprogram->parameters[i];
         Expr* argument = expr->resolvedArguments[i];
         Type* formal = parameter->type;
-        char formalClass = qbeClass(parameter->type);
 
         if (formal != nullptr && formal->kind == TypeKind::Array) {
             Value pointer = emitArrayArgument(argument, parameter->mode, arrayCopies);
@@ -1278,9 +1293,13 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         Value value = emitExpr(argument);
         emitRangeCheck(value, parameter->type, argument->location);
         if (!subprogram->importAda) { value = enumCode(value, parameter->type); }
-        // Imported C functions use the declared scalar parameter class:
-        // Float travels as s and Long_Float as d, without default promotion.
-        arguments.push_back(std::string(1, formalClass) + " " + value.name);
+        std::string convention = nativeC ? cScalarClass(formal) : std::string(1, qbeClass(formal));
+        if (convention == "l" && value.type == 'w') {
+            std::string wide = newTemp();
+            line(wide + " =l " + (scalarStorageSigned(formal) ? "extsw " : "extuw ") + value.name);
+            value = Value { wide, 'l' };
+        }
+        arguments.push_back(convention + " " + value.name);
     }
 
     if (subprogram->runtimeSymbol == "$__ada_file_stream_view" && m_sema.fileStreamType() != nullptr) {
@@ -1331,9 +1350,25 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         return Value { pointer, 'l', "1", length };
     }
 
-    char type = qbeClass(subprogram->returnType);
+    Type* returnType = subprogram->returnType;
+    char type = qbeClass(returnType);
+    std::string convention = nativeC ? cScalarClass(returnType) : std::string(1, type);
     std::string temp = newTemp();
-    emitCallInstruction(temp + " =" + std::string(1, type) + " call " + subprogram->runtimeSymbol + "(" + argumentList + ")", CallEffects::DeferredCheck);
+    emitCallInstruction(temp + " =" + convention + " call " + subprogram->runtimeSymbol + "(" + argumentList + ")", CallEffects::DeferredCheck);
+    if (convention.size() == 2) {
+        std::string extended = newTemp();
+        line(extended + " =w ext" + convention + " " + temp);
+        temp = extended;
+    }
+    if (type == 'l' && convention != "l") {
+        std::string extended = newTemp();
+        line(extended + " =l " + (scalarStorageSigned(returnType) ? "extsw " : "extuw ") + temp);
+        temp = extended;
+    } else if (type == 'w' && convention == "l") {
+        std::string narrow = newTemp();
+        line(narrow + " =w copy " + temp);
+        temp = narrow;
+    }
     copyBack();
     if (!subprogram->importAda && !subprogram->returnType->enumCodes.empty()) {
         emitExceptionCheck();

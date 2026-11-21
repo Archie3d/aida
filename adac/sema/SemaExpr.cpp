@@ -655,8 +655,10 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
         while (ancestor->parentType != nullptr) { ancestor = baseType(ancestor->parentType); }
         bool fixedAncestor = ancestor->constrained || ancestor->boundsSymbol != nullptr;
         bool knownIndex = fixedAncestor ? ancestor->constrained : context->index->scalarBoundsSymbol == nullptr;
-        long long indexFirst = fixedAncestor ? ancestor->indexLow : context->index->low;
-        auto measure = [&](Expr* operand, Type* formal, long long& first, long long& last, long long& count) {
+        __int128 indexFirst = fixedAncestor ? ancestor->indexLow : context->index->low;
+        __int128 maxBound = usesBiasedArrayBounds(context->index) ? static_cast<__int128>(UINT64_MAX) : INT64_MAX;
+        __int128 minBound = usesBiasedArrayBounds(context->index) ? 0 : INT64_MIN;
+        auto measure = [&](Expr* operand, Type* formal, __int128& first, __int128& last, long long& count) {
             if (rootType(formal) != rootType(context)) {
                 first = last = indexFirst;
                 count = 1;
@@ -672,13 +674,14 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
             if (operand->kind == ExprKind::StringLiteral) {
                 if (!knownIndex) { return false; }
                 first = indexFirst;
-                __int128 high = (__int128)first + count - 1;
-                if (high < INT64_MIN || high > INT64_MAX) { return false; }
-                last = (long long)high;
+                __int128 high = first + count - 1;
+                if (high < minBound || high > maxBound) { return false; }
+                last = high;
             }
             return true;
         };
-        long long first = 0, last = 0, leftCount = 0, rightFirst = 0, rightLast = 0, rightCount = 0;
+        __int128 first = 0, last = 0, rightFirst = 0, rightLast = 0;
+        long long leftCount = 0, rightCount = 0;
         bool knownLeft = measure(expr->left.get(), operandContext, first, last, leftCount);
         bool knownRight = measure(expr->right.get(), rightContext, rightFirst, rightLast, rightCount);
         Type* result = m_types.makeSubtype(anonymousTypeName(), context, 0, 0);
@@ -695,10 +698,10 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
                 result->constrained = true;
             } else if (!fixedAncestor || knownIndex) {
                 if (fixedAncestor) { first = indexFirst; }
-                __int128 high = (__int128)first + count - 1;
-                if (high >= INT64_MIN && high <= INT64_MAX) {
+                __int128 high = first + count - 1;
+                if (high >= minBound && high <= maxBound) {
                     result->indexLow = first;
-                    result->indexHigh = (long long)high;
+                    result->indexHigh = high;
                     result->constrained = true;
                 }
             }

@@ -121,8 +121,10 @@ Value QbeEmitter::dependentFieldBounds(const Value& object, Type* type, const Fi
         Type* indexBase = m_sema.typeTable().scalarBaseType(axis->index);
         emitRangeCheck(first, indexBase, expressions.first->location);
         emitRangeCheck(last, indexBase, expressions.second->location);
+        Value firstBound = translateArrayBound(first, axis->index);
+        Value lastBound = translateArrayBound(last, axis->index);
         std::string nonNull = newTemp(), check = newLabel("componentbounds"), ready = newLabel("componentboundsready");
-        line(nonNull + " =w csgel " + last.name + ", " + first.name);
+        line(nonNull + " =w csgel " + lastBound.name + ", " + firstBound.name);
         branch(Value {nonNull, 'w'}, check, ready);
         label(check);
         emitDiscreteRangeCheck(expressions.first, first, last);
@@ -130,8 +132,8 @@ Value QbeEmitter::dependentFieldBounds(const Value& object, Type* type, const Fi
         emitRangeCheck(last, axis->index, expressions.second->location);
         jump(ready);
         label(ready);
-        if (i == 0) { view.first = first.name; view.last = last.name; }
-        else { view.innerBounds.push_back({first.name, last.name}); }
+        if (i == 0) { view.first = firstBound.name; view.last = lastBound.name; }
+        else { view.innerBounds.push_back({firstBound.name, lastBound.name}); }
         axis = axis->element;
     }
     view = arrayView(view, field.type);

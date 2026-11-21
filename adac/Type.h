@@ -253,8 +253,8 @@ struct Type
     // Constraint identity is distinct from the descriptor storing array bounds.
     Type* indexConstraint = nullptr;
     bool indexRangeStatic = true;
-    long long indexLow = 0;
-    long long indexHigh = 0;
+    __int128 indexLow = 0;
+    __int128 indexHigh = 0;
     bool constrained = true;
 
     // A dynamically constrained declaration keeps its bounds in its owner's
@@ -308,12 +308,13 @@ struct Type
     // how a Stream_Element comes out a byte wide.
     long long byteSize = 0;
     long long compositeSize = 0;
-    std::vector<std::pair<long long, long long>> sizeBounds;
+    std::vector<std::pair<__int128, __int128>> sizeBounds;
     // -1 selects the default; zero specifies no additional alignment promise.
     long long alignment = -1;
     long long specifiedSize = -1;
     long long valueSizeBits = -1;
     bool componentSizeSpecified = false;
+    bool packSpecified = false;
     int packedComponentBits = 0;
     bool alignmentSpecified = false;
 };
@@ -373,6 +374,7 @@ bool isScalar(const Type* type);
 bool isComposite(const Type* type);
 
 long long typeSize(const Type* type);
+bool usesBiasedArrayBounds(const Type* index);
 long long typeLayoutSize(const Type* type);
 bool scalarStorageSigned(const Type* type);
 long long typeAlignment(const Type* type);

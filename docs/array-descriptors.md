@@ -1,7 +1,14 @@
-# Array descriptors (internal ABI v2)
+# Array descriptors (internal ABI v3)
 
-Array bounds are signed 64-bit values. Lengths, byte strides, offsets and byte
-sizes are nonnegative signed 64-bit values, limited to `Long_Integer'Last`.
+Array bounds occupy 64-bit words. For an index type whose modulus exceeds
+`2 ** 63`, the compiler toggles the high bit of both endpoints so signed
+comparison and subtraction preserve the unsigned order and distances. The
+resolved index type supplies the encoding even for a subtype whose values
+all fit in `Long_Integer`. Indexing, slicing and bounds construction use the
+encoded values. Attributes and stream I/O expose the original Ada values.
+
+Lengths, byte strides, offsets and byte sizes are nonnegative signed 64-bit
+values, limited to `Long_Integer'Last`.
 The [packed-array extension](packed-arrays.md) reserves strides -1 through -64
 as component widths in bits; these are not backward byte strides.
 The former `Integer'Last` length limit and 32-bit multidimensional bound limit
@@ -42,6 +49,11 @@ index varying fastest. Arrays of arrays retain their component subtype shape.
 | Expanded unconstrained Ada parameter | data pointer, then four `l` arguments per dimension in first/last/length/stride order |
 | Owned unconstrained result | data pointer, allocated transfer size, then dimension records; `16 + 32*rank` bytes. `AdaArrayResult` is the 48-byte rank-one header. |
 
+ABI v3 keeps the v2 layout and changes the encoding of wide modular
+indices. Rebuild Ada units that share arrays or use changed scalar widths.
+The driver and frontend already validate the compiler fingerprint in their
+cache and semantic-interface records, so source builds regenerate these units.
+
 `Value` carries bounds, optional materialized lengths/strides, and the data
 operand. `arrayView`, `loadArrayView`, `storeArrayView`, `arrayRow`, `lengthOf`
 and `arrayElementSize` centralize completion, marshalling and access. Element
@@ -57,7 +69,8 @@ contiguous and overlap-safe where assignment requires it.
 
 - Bounds and slice/index operands are evaluated once and widened before use.
   Non-null bounds must satisfy index constraints. Null ranges preserve both
-  endpoints and have length zero, including `Long_Integer'Last .. Long_Integer'First`.
+  endpoints and have length zero, including `Long_Integer'Last .. Long_Integer'First`
+  and the corresponding modular array range from `2 ** 64 - 1` to `0`.
 - Length differences use unsigned/wide checked arithmetic. Counts beyond the
   signed 64-bit capacity, negative strides/sizes outside the packed width range, byte-product overflow and
   allocation failure raise `Storage_Error`. Static impossible shapes receive

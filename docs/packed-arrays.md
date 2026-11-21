@@ -51,6 +51,12 @@ nondefault bit order remain explicitly unsupported. Matching packed layouts
 support the existing array conversions. This increment adds no follow-on roadmap
 items.
 
+One-dimensional arrays of aliased `Character`, `Wide_Character`,
+`Wide_Wide_Character` or derived character types accept `pragma Pack` as a
+confirming request for their native component stride. Each element keeps its
+address and natural alignment. A following confirming `Component_Size` clause
+and the element's `Address` and `Access` attributes use that same representation.
+
 ## Enumeration Size
 
 Enumeration Size accepts 1 through 32 bits when every stored representation code

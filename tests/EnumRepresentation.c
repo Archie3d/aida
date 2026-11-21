@@ -42,5 +42,6 @@ void __test_enum_invalid(void* address)
 
 int __test_enum_invalid_result(void)
 {
-    return 44;
+    // The low halfword is Green's code. A C enum result uses the whole word.
+    return 0x1000b;
 }

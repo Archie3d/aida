@@ -15,12 +15,10 @@ and the parent `Interfaces` foundation. Follow
 and [B.3.2](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3-2.html).
 
 Existing scalar C imports and native function pointers provide a starting point
-([current contract](docs/subprogram-access.md)). The packages are absent; this
-requires compiler representation and ABI work as well as library bodies. In
-particular, unsigned 32-bit storage currently widens to 64 bits, array bounds
-use signed 64-bit descriptors, and floating point stops at binary64. The shared
-runtime-call path also passes array lengths, so it cannot directly serve C array
-parameters. Complete the following in dependency order:
+([current contract](docs/subprogram-access.md)). The packages require compiler
+representation and ABI work as well as library bodies. Floating point stops at
+binary64, and the shared runtime-call path passes array lengths. Complete the
+following in dependency order:
 
 - [x] **Target contract and ABI probes.** Record C sizes, alignments,
   signedness and floating formats for each supported target, including LP64
@@ -30,12 +28,13 @@ parameters. Complete the following in dependency order:
   formats rather than silently aliasing them to `double`. Record package and
   target completion criteria before implementation. [Contract and probe
   evidence](docs/interfaces-c-abi.md).
-- [ ] **Representation prerequisites.** Add exact-width signed/unsigned
+- [x] **Representation prerequisites.** Add exact-width signed/unsigned
   storage and correct loads, stores, conversions and argument/result extension.
   Resolve full-width modular array indices for `size_t` without truncating upper
   bounds; retain checked allocation extents and migrate descriptors/caches if
   needed. Support addressable aliased character elements with native strides.
   Validate layout against C, including high-bit values and boundary failures.
+  [Representation verification](docs/interfaces-c-abi.md#representation-verification).
 - [ ] **Parent and scalar packages.** Add `Interfaces` integer/modular
   types, shift/rotate operations and hardware floating types, then `Interfaces.C`
   numeric types, implementation-defined constants and character types. Preserve package purity,

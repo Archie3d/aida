@@ -17,7 +17,7 @@ procedure SizeRangeErrors is
     for Byte_Mod'Size use 8;
     type Half_Mod is mod 65537;
     for Half_Mod'Size use 16;
-    type Word_Mod is mod 2 ** 32;
+    type Word_Mod is mod 2 ** 32 + 1;
     for Word_Mod'Size use 32;
     type Many is (
         E0, E1, E2, E3, E4, E5, E6, E7,

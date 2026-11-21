@@ -19,6 +19,12 @@ bool Sema::foldStatic(Expr* expr, long long& value) const
     return true;
 }
 
+bool Sema::foldStatic(Expr* expr, __int128& value) const
+{
+    StaticFailure failure = StaticFailure::None;
+    return foldWideInteger(expr, value, failure);
+}
+
 bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) const
 {
     if (expr == nullptr || isReal(expr->type)) {

@@ -277,7 +277,7 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
     bool hasNamed = false;
     bool hasPositional = false;
     bool hasOthers = false;
-    std::vector<std::pair<long long, long long>> staticChoices;
+    std::vector<std::pair<__int128, __int128>> staticChoices;
     for (AggregateComponent& component : expr->components) {
         for (std::size_t i = 0; i < component.choiceLows.size(); ++i) {
             Type* subtypeChoice = nullptr;
@@ -345,8 +345,8 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         }
         hasNamed = true;
         for (std::size_t i = 0; i < component.choiceLows.size(); ++i) {
-            long long low = 0;
-            long long high = 0;
+            __int128 low = 0;
+            __int128 high = 0;
             bool known = foldStatic(component.choiceLows[i].get(), low);
             if (component.choiceHighs[i]) {
                 known = foldStatic(component.choiceHighs[i].get(), high) && known;
@@ -365,9 +365,11 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
                     "a dynamic or null aggregate choice must be the only choice");
             }
             if (known) {
-                component.choiceLows[i]->staticValue = low;
+                component.choiceLows[i]->exactReal = ExactReal::make(low);
+                component.choiceLows[i]->staticValue = static_cast<long long>(low);
                 if (component.choiceHighs[i]) {
-                    component.choiceHighs[i]->staticValue = high;
+                    component.choiceHighs[i]->exactReal = ExactReal::make(high);
+                    component.choiceHighs[i]->staticValue = static_cast<long long>(high);
                 }
                 if (high >= low) {
                     staticChoices.emplace_back(low, high);

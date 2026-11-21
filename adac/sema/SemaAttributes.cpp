@@ -1056,7 +1056,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             expr->type = base->index != nullptr ? m_types.scalarBaseType(base->index) : m_types.integerType();
             if (base->constrained && staticArrayPrefix) {
                 expr->isStatic = true;
-                expr->staticValue = name == "first" ? base->indexLow : base->indexHigh;
+                expr->exactReal = ExactReal::make(name == "first" ? base->indexLow : base->indexHigh);
+                expr->exactReal.integer(expr->staticValue);
             }
             return expr->type;
         }

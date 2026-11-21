@@ -132,8 +132,9 @@ long long typeSize(const Type* type)
     case TypeKind::UniversalReal:
         return 8;
     case TypeKind::Integer:
-        return type->base != nullptr ? typeSize(type->base)
-            : (type->low < -2147483648LL || type->high > 2147483647LL ? 8 : 4);
+        if (type->base != nullptr) { return typeSize(type->base); }
+        if (type->modulus != 0) { return type->high > UINT32_MAX ? 8 : 4; }
+        return type->low < INT32_MIN || type->high > INT32_MAX ? 8 : 4;
     case TypeKind::Enumeration:
         return type->literals.size() > 256 ? 4 : 1;
     case TypeKind::Float:
@@ -285,6 +286,11 @@ long long arrayLength(const Type* type)
     return length > std::numeric_limits<long long>::max() ? std::numeric_limits<long long>::max() : (long long)length;
 }
 
+bool usesBiasedArrayBounds(const Type* index)
+{
+    return index != nullptr && index->modulus > static_cast<__int128>(INT64_MAX) + 1;
+}
+
 char qbeClass(const Type* type)
 {
     if (type == nullptr) {
@@ -298,7 +304,7 @@ char qbeClass(const Type* type)
     case TypeKind::Integer: {
         const Type* valueType = type;
         while (valueType->isSubtype && valueType->base != nullptr) { valueType = valueType->base; }
-        return typeSize(valueType) == 8
+        return typeSize(valueType) == 8 || valueType->modulus > static_cast<__int128>(INT32_MAX) + 1
             || (valueType->parentType != nullptr && qbeClass(valueType->parentType) == 'l') ? 'l' : 'w';
     }
     case TypeKind::UniversalInteger:
@@ -329,7 +335,7 @@ const char* qbeLoadInstruction(const Type* type)
         if (isReal(type)) {
             return "loads";
         }
-        return "loadsw";
+        return qbeClass(type) == 'l' && !scalarStorageSigned(type) ? "loaduw" : "loadsw";
     }
 }
 

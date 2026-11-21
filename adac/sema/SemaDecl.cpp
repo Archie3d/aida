@@ -1259,22 +1259,28 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
     if (decl->lower == "pack") {
         Symbol* entity = candidates.size() == 1 ? candidates.front() : nullptr;
         Type* type = entity != nullptr && entity->kind == SymbolKind::TypeName ? entity->type : nullptr;
+        bool aliasedCharacters = type != nullptr && type->aliasedElements && m_types.isCharacter(type->element);
         if (type == nullptr || type->isSubtype || type->kind != TypeKind::Array
             || type->arrayRank != 1 || type->element == nullptr
-            || (!m_types.isBooleanArray(type)
+            || (!aliasedCharacters && !m_types.isBooleanArray(type)
                 && (type->element->kind != TypeKind::Integer || type->element->modulus != 0))
-            || type->element->genericFormal || type->aliasedElements || type->shared != 0
+            || type->element->genericFormal || (type->aliasedElements && !aliasedCharacters) || type->shared != 0
             || sharedTypeKind(type->element) != 0
             || !representationVisible(type)) {
-            m_diagnostics.error(decl->location, "Pack currently requires a visible one-dimensional Boolean or signed integer array without aliased or shared components");
+            m_diagnostics.error(decl->location, "Pack currently requires a visible one-dimensional Boolean or signed integer array without aliased or shared components, or an array of aliased characters");
         } else if (m_frozenTypes.contains(type)) {
             m_diagnostics.error(decl->location, "Pack must precede freezing of the array type");
         } else if (type->componentSizeSpecified) {
             m_diagnostics.error(decl->location, "Pack after a Component_Size specification is not yet supported");
-        } else if (type->packedComponentBits) {
+        } else if (type->packSpecified || type->packedComponentBits) {
             m_diagnostics.error(decl->location, "Pack may be specified only once for an array type");
-        } else if (type->alignmentSpecified && type->alignment > 1) {
+        } else if (!aliasedCharacters && type->alignmentSpecified && type->alignment > 1) {
             m_diagnostics.error(decl->location, "packed arrays require storage-element alignment");
+        } else if (aliasedCharacters) {
+            // Aliased character components already use their natural stride
+            // and must remain independently addressable.
+            type->packSpecified = true;
+            freezeType(type->element);
         } else {
             int bits = 1;
             if (type->element->kind == TypeKind::Integer) {
@@ -1289,6 +1295,7 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
                 }
             }
             type->packedComponentBits = bits;
+            type->packSpecified = true;
             type->alignment = 1;
             freezeType(type->element);
             m_types.refreshStorageRepresentation(type);

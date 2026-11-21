@@ -1,5 +1,6 @@
-/* Internal array ABI v2. Compiler and C runtime must change together.
-   Rank and element representation belong to the resolved array type. */
+/* Internal array ABI v3. Compiler and C runtime must change together.
+   Rank and element representation belong to the resolved array type.
+   When the index modulus exceeds 2 ** 63, both bounds have their high bit toggled. */
 #ifndef ADA_ARRAY_H
 #define ADA_ARRAY_H
 #include <stdint.h>

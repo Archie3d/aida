@@ -184,8 +184,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         result->compositeSize = 0;
         result->sizeBounds.clear();
         result->alignment = -1;
-        long long lowBound = 0;
-        long long highBound = 0;
+        __int128 lowBound = 0;
+        __int128 highBound = 0;
         if (foldStatic(low, lowBound) && foldStatic(high, highBound)) {
             result->constrained = true;
             result->indexLow = lowBound;

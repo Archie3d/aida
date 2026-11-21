@@ -406,6 +406,8 @@ private:
     Value scalarBoundsAddress(Type* type);
     void emitTypeBounds(Type* type, const SourceLocation& location);
     Value wideBound(Value value);
+    Value translateArrayBound(Value value, const Type* index);
+    Value staticArrayChoiceBounds(const AggregateExpr* expr, const Type* index);
     Value narrowArrayLength(Value value);
     Value arrayView(Value value, Type* type);
     Value loadArrayView(const std::string& descriptor, int rank, bool result);

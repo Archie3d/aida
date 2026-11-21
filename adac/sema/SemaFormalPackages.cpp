@@ -94,7 +94,7 @@ bool staticString(Expr* expression, std::string& value, int depth = 0)
             Expr* high = call->arguments.front().high.get();
             if (low == nullptr || high == nullptr || !low->isStatic || !high->isStatic
                 || !staticString(call->callee.get(), value, depth + 1)) { return false; }
-            long long first = call->callee->type->indexLow;
+            __int128 first = call->callee->type->indexLow;
             if (low->staticValue > high->staticValue) { value.clear(); return true; }
             if (low->staticValue < first || high->staticValue - first >= static_cast<long long>(value.size())) { return false; }
             value = value.substr(static_cast<std::size_t>(low->staticValue - first),

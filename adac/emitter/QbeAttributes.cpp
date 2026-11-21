@@ -688,6 +688,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                 return length;
             }
             std::string bound = name == "first" ? array.first : array.last;
+            bound = translateArrayBound(Value {bound, 'l'}, axis->index).name;
             if (qbeClass(expr->type) == 'l') {
                 std::string wide = newTemp();
                 line(wide + " =l copy " + bound);
@@ -1067,8 +1068,8 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
                 Value firstSlot {allocTypeScratch(index), 'l'}, lastSlot {allocTypeScratch(index), 'l'};
                 emitStreamComponents(stream, true, firstSlot, index);
                 emitStreamComponents(stream, true, lastSlot, index);
-                std::string first = wideBound(loadFrom(firstSlot, index)).name;
-                std::string last = wideBound(loadFrom(lastSlot, index)).name;
+                std::string first = translateArrayBound(loadFrom(firstSlot, index), index).name;
+                std::string last = translateArrayBound(loadFrom(lastSlot, index), index).name;
                 if (dimension == 0) { result.first = first; result.last = last; }
                 else { result.innerBounds.push_back({first, last}); }
             }
@@ -1142,9 +1143,9 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
                 for (int i = 0; i < dimension; ++i) { axis = axis->element; }
                 Type* index = m_sema.typeTable().scalarBaseType(axis->index);
                 Value slot {allocTypeScratch(index), 'l'};
-                storeInto(slot, Value {address.axisFirst(dimension), 'l'}, index);
+                storeInto(slot, translateArrayBound(Value {address.axisFirst(dimension), 'l'}, index), index);
                 emitStreamComponents(stream, false, slot, index);
-                storeInto(slot, Value {address.axisLast(dimension), 'l'}, index);
+                storeInto(slot, translateArrayBound(Value {address.axisLast(dimension), 'l'}, index), index);
                 emitStreamComponents(stream, false, slot, index);
             }
         }

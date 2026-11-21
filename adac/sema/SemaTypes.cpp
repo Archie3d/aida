@@ -661,9 +661,6 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             bool symbolicIndex = m_recordContract != nullptr && indexType->genericFormal;
             row->index = indexType;
             row->indexConstraint = index->indexSubtypeMark ? indexType : nullptr;
-            if (indexType->high > LLONG_MAX) {
-                m_diagnostics.error(index->location, "array index subtypes require signed 64-bit bounds");
-            }
             if (!isDiscrete(indexType)) {
                 m_diagnostics.error(index->location, "array indices require a discrete type");
             }
@@ -875,6 +872,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->streamsFrozen = false;
         type->streamSizeSpecified = false;
         type->componentSizeSpecified = false;
+        type->packSpecified = false;
         type->interfaceKind = InterfaceKind::None;
         if (parent->interfaceKind != InterfaceKind::None) {
             type->isLimited = definition->isLimited;
@@ -1970,14 +1968,13 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     switch (type->kind) {
     case TypeKind::Integer:
     case TypeKind::Enumeration: {
-        // Byte and halfword loads can be unsigned. Word arithmetic and loads
-        // are signed; types needing the full unsigned word range use 64 bits.
+        // Integer arithmetic may use a wider class than object storage.
         long long low = 0;
         __int128 high = type->modulus != 0 && bits == 64
             ? (__int128)UINT64_MAX : std::numeric_limits<long long>::max();
         if (bits == 64) {
             low = std::numeric_limits<long long>::min();
-        } else if (bits == 32 || scalarStorageSigned(type)) {
+        } else if ((bits == 32 && type->modulus == 0) || scalarStorageSigned(type)) {
             low = -(1LL << (bits - 1));
             high = (1LL << (bits - 1)) - 1;
         } else {
@@ -2410,8 +2407,8 @@ Type* Sema::constrainArray(SubtypeIndication* indication, Type* base, Scope* sco
     if (!typesCompatible(array->index, lowType)) {
         m_diagnostics.error(indication->location, "array index bounds have an incompatible type");
     }
-    long long low = 0;
-    long long high = 0;
+    __int128 low = 0;
+    __int128 high = 0;
     bool staticLow = foldStatic(indication->indexLows.front().get(), low);
     bool staticHigh = false;
     if (indication->indexHighs.front()) {

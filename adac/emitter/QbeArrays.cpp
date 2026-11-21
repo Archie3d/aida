@@ -41,6 +41,23 @@ Value QbeEmitter::wideBound(Value value)
     return value;
 }
 
+Value QbeEmitter::translateArrayBound(Value value, const Type* index)
+{
+    value = wideBound(value);
+    if (!usesBiasedArrayBounds(index)) { return value; }
+    // Toggle the high bit in both directions. Signed descriptor coordinates
+    // then preserve unsigned ordering and distances without changing the ABI
+    // of the checked length, stride and allocation helpers.
+    constexpr uint64_t kSignBit = uint64_t{1} << 63;
+    if (isLiteralOperand(value.name)) {
+        uint64_t bits = static_cast<uint64_t>(std::stoll(value.name));
+        return constantValue(static_cast<long long>(bits ^ kSignBit), 'l');
+    }
+    std::string translated = newTemp();
+    line(translated + " =l xor " + value.name + ", " + scalarText(kSignBit));
+    return Value {translated, 'l'};
+}
+
 Value QbeEmitter::narrowArrayLength(Value value)
 {
     std::string narrow = newTemp();
@@ -129,7 +146,8 @@ void QbeEmitter::emitDiscreteRangeCheck(Expr* low, const Value& first, const Val
     Value lower = wideBound(first);
     Value upper = wideBound(last);
     std::string nonNull = newTemp();
-    line(nonNull + " =w csgel " + upper.name + ", " + lower.name);
+    line(nonNull + (usesBiasedArrayBounds(low->rangeSubtype) ? " =w cugel " : " =w csgel ")
+        + upper.name + ", " + lower.name);
     std::string check = newLabel("discreterangecheck");
     std::string ready = newLabel("discreterangeready");
     branch(Value { nonNull, 'w' }, check, ready);
@@ -171,13 +189,14 @@ void QbeEmitter::emitTypeBounds(Type* type, const SourceLocation& location)
     Type* axis = type;
     for (int dimension = 0; dimension < type->arrayRank; ++dimension) {
         auto [low, high] = type->boundExpressions[dimension];
-        Value first = low ? emitExpr(low) : constantValue(axis->indexLow, 'l');
-        Value last = high ? emitExpr(high) : constantValue(axis->indexHigh, 'l');
+        Value first = low ? emitExpr(low) : Value {scalarText(axis->indexLow), 'l'};
+        Value last = high ? emitExpr(high) : Value {scalarText(axis->indexHigh), 'l'};
         emitDiscreteRangeCheck(low, first, last);
         first = wideBound(first);
         last = wideBound(last);
         std::string nonNull = newTemp();
-        line(nonNull + " =w csgel " + last.name + ", " + first.name);
+        line(nonNull + (usesBiasedArrayBounds(axis->index) ? " =w cugel " : " =w csgel ")
+            + last.name + ", " + first.name);
         std::string check = newLabel("typeboundscheck");
         std::string ready = newLabel("typeboundsready");
         branch(Value { nonNull, 'w' }, check, ready);
@@ -186,6 +205,8 @@ void QbeEmitter::emitTypeBounds(Type* type, const SourceLocation& location)
         emitRangeCheck(last, axis->index, location);
         jump(ready);
         label(ready);
+        first = translateArrayBound(first, axis->index);
+        last = translateArrayBound(last, axis->index);
         if (dimension == 0) { bounds.first = first.name; bounds.last = last.name; }
         else { bounds.innerBounds.push_back({ first.name, last.name }); }
         axis = axis->element;
@@ -223,14 +244,16 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
             Value last = emitExpr(object->subtype->indexHighs[dimension].get());
             first = wideBound(first);
             last = wideBound(last);
+            Value firstBound = translateArrayBound(first, axis->index);
+            Value lastBound = translateArrayBound(last, axis->index);
             if (dimension == 0) {
-                bounds.first = first.name;
-                bounds.last = last.name;
+                bounds.first = firstBound.name;
+                bounds.last = lastBound.name;
             } else {
-                bounds.innerBounds.push_back({ first.name, last.name });
+                bounds.innerBounds.push_back({ firstBound.name, lastBound.name });
             }
             std::string nonNull = newTemp();
-            line(nonNull + " =w csgel " + last.name + ", " + first.name);
+            line(nonNull + " =w csgel " + lastBound.name + ", " + firstBound.name);
             std::string check = newLabel("checkbounds");
             std::string ready = newLabel("boundsready");
             branch(Value { nonNull, 'w' }, check, ready);
@@ -402,15 +425,16 @@ Value QbeEmitter::withBounds(const Value& address, Type* type, Symbol* symbol)
         return bounds;
     }
     if (type->constrained) {
-        result.first = std::to_string(type->indexLow);
-        result.last = std::to_string(type->indexHigh);
+        result.first = translateArrayBound(Value {scalarText(type->indexLow), 'l'}, type->index).name;
+        result.last = translateArrayBound(Value {scalarText(type->indexHigh), 'l'}, type->index).name;
         result.innerBounds.clear();
         result.strides.clear();
         result.lengths.clear();
         Type* row = type;
         for (int dimension = 1; dimension < type->arrayRank; ++dimension) {
             row = row->element;
-            result.innerBounds.push_back({ std::to_string(row->indexLow), std::to_string(row->indexHigh) });
+            result.innerBounds.push_back({translateArrayBound(Value {scalarText(row->indexLow), 'l'}, row->index).name,
+                translateArrayBound(Value {scalarText(row->indexHigh), 'l'}, row->index).name});
         }
     } else if (symbol != nullptr || (!result.hasBounds() && type->boundsSymbol != nullptr)) {
         Value bounds = boundsFor(symbol != nullptr && symbol->kind != SymbolKind::TypeName
@@ -530,8 +554,8 @@ Value QbeEmitter::emitSlice(CallExpr* expr)
     Value high = emitExpr(expr->resolvedArguments[1]);
 
     emitDiscreteRangeCheck(expr->resolvedArguments[0], low, high);
-    low = wideBound(low);
-    high = wideBound(high);
+    low = translateArrayBound(low, array->index);
+    high = translateArrayBound(high, array->index);
     std::string offset = newTemp(), address = newTemp();
     emitCallInstruction(offset + " =l call $__ada_array_slice_offset(l " + low.name + ", l " + high.name
          + ", l " + base.first + ", l " + base.last + ", l " + arrayElementSize(base, array) + ")", CallEffects::CheckException);
@@ -586,8 +610,9 @@ Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
     bool fixedAncestor = ancestor->constrained || ancestor->boundsSymbol != nullptr;
     Value indexBounds = fixedAncestor ? withBounds(Value {}, ancestor, nullptr) : scalarBounds(type->index);
     char boundClass = fixedAncestor ? 'l' : indexBounds.type;
-    std::string indexFirst = wideBound(Value { indexBounds.first, boundClass }).name;
-    std::string indexLast = wideBound(Value { indexBounds.last, boundClass }).name;
+    Type* scalarIndex = fixedAncestor ? nullptr : type->index;
+    std::string indexFirst = translateArrayBound(Value { indexBounds.first, boundClass }, scalarIndex).name;
+    std::string indexLast = translateArrayBound(Value { indexBounds.last, boundClass }, scalarIndex).name;
     std::string stride = runtimeSize(component);
     struct Operand
     {
@@ -689,9 +714,10 @@ Value QbeEmitter::convertArrayBounds(Value value, Type* source, Type* target, co
         return shape;
     }
     Type* axis = target;
+    Type* sourceAxis = source;
     for (int dimension = 0; dimension < target->arrayRank; ++dimension) {
-        const auto& first = dimension == 0 ? value.first : value.innerBounds[dimension - 1].first;
-        const auto& last = dimension == 0 ? value.last : value.innerBounds[dimension - 1].second;
+        auto& first = dimension == 0 ? value.first : value.innerBounds[dimension - 1].first;
+        auto& last = dimension == 0 ? value.last : value.innerBounds[dimension - 1].second;
         std::string wideFirst = newTemp();
         std::string wideLast = newTemp();
         line(wideFirst + " =l copy " + first);
@@ -699,19 +725,29 @@ Value QbeEmitter::convertArrayBounds(Value value, Type* source, Type* target, co
         // Null ranges skip subtype constraints, but their endpoints still
         // must be representable values of the target index's base type.
         Type* indexBase = m_sema.typeTable().scalarBaseType(axis->index);
-        emitRangeCheck(Value { wideFirst, 'l' }, indexBase, location);
-        emitRangeCheck(Value { wideLast, 'l' }, indexBase, location);
+        Value lower = translateArrayBound(Value {wideFirst, 'l'}, sourceAxis->index);
+        Value upper = translateArrayBound(Value {wideLast, 'l'}, sourceAxis->index);
+        if (usesBiasedArrayBounds(sourceAxis->index) != usesBiasedArrayBounds(axis->index)) {
+            lower = emitDiscreteConversion(lower, sourceAxis->index, indexBase);
+            upper = emitDiscreteConversion(upper, sourceAxis->index, indexBase);
+            first = translateArrayBound(lower, axis->index).name;
+            last = translateArrayBound(upper, axis->index).name;
+        } else {
+            emitRangeCheck(lower, indexBase, location);
+            emitRangeCheck(upper, indexBase, location);
+        }
         std::string nonNull = newTemp();
         std::string check = newLabel("conversionbounds");
         std::string ready = newLabel("conversionboundsready");
         line(nonNull + " =w csgel " + last + ", " + first);
         branch(Value { nonNull, 'w' }, check, ready);
         label(check);
-        emitRangeCheck(Value { wideFirst, 'l' }, axis->index, location);
-        emitRangeCheck(Value { wideLast, 'l' }, axis->index, location);
+        emitRangeCheck(lower, axis->index, location);
+        emitRangeCheck(upper, axis->index, location);
         jump(ready);
         label(ready);
         axis = axis->element;
+        sourceAxis = sourceAxis->element;
     }
     return value;
 }

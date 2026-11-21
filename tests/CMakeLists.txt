@@ -1413,7 +1413,7 @@ add_ada_error_test(taskidentityerrors SOURCES tasks/taskidentityerrors.adb)
 
 # Numeric and array boundaries in whole/separate compilation, deterministic
 # IR, and several independent Ada task contexts.
-foreach(boundary_case realedges realtasking floatattributes floatattributetasking realvalue realvaluetasking derivedscalaroperations arraydescriptors arraydescriptortasking concatenation concattasking)
+foreach(boundary_case realedges realtasking floatattributes floatattributetasking realvalue realvaluetasking derivedscalaroperations arraydescriptors arraydescriptortasking concatenation concattasking unsignedarraybounds)
     add_ada_test(${boundary_case} SOURCES ${boundary_case}.adb)
     add_determinism_test(${boundary_case} SOURCE ${boundary_case}.adb)
     ada_test_fixture(source_path "${boundary_case}.adb")
@@ -3064,6 +3064,18 @@ add_executable(host_abi_report host/AbiReport.c host/CAbiFacts.c)
 target_compile_features(host_abi_report PRIVATE c_std_11)
 add_test(NAME host.abi_layout COMMAND host_abi_report)
 add_determinism_test(hostabi SOURCE driver/hostabi.adb)
+add_determinism_test(cscalarwidth SOURCE numerics/cscalarwidth.adb)
+add_test(NAME host.c_scalar_widths
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/host/ScalarAbi.c
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/numerics/cscalarwidth.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/numerics/cscalarwidth.expected
+        "-DWORKDIR=${ADA_TEST_WORK_DIR}/host C scalar widths"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 add_test(NAME host.abi_modes
     COMMAND ${CMAKE_COMMAND}
         -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
@@ -3075,7 +3087,7 @@ add_test(NAME host.abi_modes
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/driver/hostabi.expected
         "-DWORKDIR=${ADA_TEST_WORK_DIR}/host ABI modes"
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
-set_tests_properties(host.paths host.abi_layout host.abi_modes determinism.hostabi
+set_tests_properties(host.paths host.abi_layout host.abi_modes determinism.hostabi host.c_scalar_widths determinism.cscalarwidth
     PROPERTIES TIMEOUT 60 LABELS "host")
 if(Python3_Interpreter_FOUND)
     add_test(NAME host.harness_protocol

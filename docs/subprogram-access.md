@@ -52,6 +52,10 @@ C callback values are native function pointers. They can be called from Ada,
 passed to an imported C routine, or returned by one. Indirect calls reuse the
 existing C argument/result marshaller, including floating point classes,
 representation-coded enumerations, writable scalar parameters and null checks.
+Foreign integer calls use the C ABI class matching the declared storage width.
+Narrow integer results are extended to the Ada arithmetic class using their
+signedness. Enumeration imports retain their word-sized representation codes.
+Direct calls to reserved `__ada_` hooks retain their established helper profiles.
 Function addresses are relocated through constant data, which also works for
 external symbols on macOS without modifying QBE.
 

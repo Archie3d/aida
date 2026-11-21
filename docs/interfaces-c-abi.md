@@ -3,7 +3,7 @@
 Phase 13 targets the Ada 2005 packages `Interfaces`, `Interfaces.C`,
 `Interfaces.C.Strings` and `Interfaces.C.Pointers`. The existing
 [C Import and callback subset](subprogram-access.md) provides the starting
-point. The packages and the compiler changes below are planned work.
+point. Package declarations follow the compiler representation work.
 [Ada 2005 RM B.2](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-2.html),
 [B.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3.html),
 [B.3.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3-1.html),
@@ -124,3 +124,27 @@ interop for those formats remain deferred. [QBE IL scalar types](../qbe/doc/il.t
 
 General `Export`, Ada-defined C callbacks, foreign objects, by-value records,
 variadics and C++ bindings remain separate roadmap follow-ups.
+
+## Representation verification
+
+`host.c_scalar_widths` calls C with both signed and unsigned 8-, 16-, 32- and
+64-bit values. The test covers high-bit results, indirect calls, stack
+arguments, modular conversions and range failures. C also updates arrays
+through element addresses to verify four-byte unsigned word storage and
+1-, 2- and 4-byte aliased character strides, including visibility through
+an existing Ada access value.
+
+`unsignedarraybounds` exercises static and dynamic ranges, returned and
+allocated arrays, indexing, slices, aggregates, multidimensional views,
+array conversions and checked count and byte-size overflow. The stream tests
+verify that bounds cross the stream as unsigned Ada values. The tests cover
+whole and per-unit builds and deterministic IR where applicable.
+
+Both control programs run natively on Darwin arm64. The scalar fixture's
+generated Ada assembly and C helper also compile to objects for the five
+target ABIs in the matrix. Native execution on the other targets is part of
+the phase's integration checks.
+
+The Darwin arm64 Release campaign covered 2,213 checks. Three container
+compiles reached the harness deadlines during the parallel run and passed
+on isolated reruns. Thirteen focused ASan/UBSan checks passed.
