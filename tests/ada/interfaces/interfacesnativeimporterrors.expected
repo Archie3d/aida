@@ -1,0 +1,11 @@
+interfacesnativeimporterrors.adb:33:5: error: C callback profile has an unsupported completed representation
+interfacesnativeimporterrors.adb:31:5: error: C Convention type has an unsupported completed representation
+interfacesnativeimporterrors.adb:14:5: error: unsupported C import result type
+interfacesnativeimporterrors.adb:16:5: error: unsupported C import result type
+interfacesnativeimporterrors.adb:18:5: error: unsupported C import result type
+interfacesnativeimporterrors.adb:20:26: error: unsupported C import parameter type for 'Value'
+interfacesnativeimporterrors.adb:22:25: error: unsupported C import parameter type for 'Value'
+interfacesnativeimporterrors.adb:24:27: error: unsupported C import parameter type for 'Value'
+interfacesnativeimporterrors.adb:26:28: error: unsupported C import parameter type for 'Value'
+interfacesnativeimporterrors.adb:28:29: error: unsupported C import parameter type for 'Value'
+interfacesnativeimporterrors.adb:35:27: error: unsupported C import parameter type for 'Value'

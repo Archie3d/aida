@@ -2459,6 +2459,18 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
         }
     }
     std::unordered_set<Type*> checked;
+    for (const auto& [profile, location] : m_cCallbackProfiles) {
+        if (!supportsNativeCResult(profile->returnType)
+            || std::any_of(profile->parameters.begin(), profile->parameters.end(),
+                [&](const Symbol* parameter) { return !supportsNativeCParameter(parameter); })) {
+            m_diagnostics.error(location, "C callback profile has an unsupported completed representation");
+        }
+    }
+    for (const auto& [type, location] : m_cStorageConventions) {
+        if (!supportsNativeCStorage(type)) {
+            m_diagnostics.error(location, "C Convention type has an unsupported completed representation");
+        }
+    }
     for (const auto& symbol : m_symbolTable.symbols()) {
         Type* type = symbol->type;
         if (isScalar(type) && (sharedSymbolKind(symbol.get()) != 0)) {
@@ -2468,10 +2480,16 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
             }
         }
         if (symbol->builtin == BuiltinKind::Runtime) {
+            if (isNativeCImport(symbol.get()) && !supportsNativeCResult(symbol->returnType)) {
+                m_diagnostics.error(symbol->location, "unsupported C import result type");
+            }
             for (Symbol* parameter : symbol->parameters) {
                 Type* formal = baseType(parameter->type);
                 if (hasSharedAccessParts(formal) && symbol->runtimeSymbol != "$__ada_deallocate") {
                     m_diagnostics.error(symbol->location, "imported parameters containing access to shared objects are not yet supported");
+                } else if (isNativeCImport(symbol.get()) && !hasSharedParts(formal)
+                    && !supportsNativeCParameter(parameter)) {
+                    m_diagnostics.error(parameter->location, "unsupported C import parameter type for '" + parameter->displayName + "'");
                 }
             }
         }

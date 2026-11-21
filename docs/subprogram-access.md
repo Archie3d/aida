@@ -44,26 +44,25 @@ guarded imported No_Return callbacks.
 
 A named access-to-subprogram type can specify `pragma Convention (C, Type_Name)`
 (or explicitly `Ada`). Specify it once, before the type is used in a subtype,
-component, object or subprogram profile. The pragma currently supports named
-callback types only. C callback profiles accept scalar and named access
-parameters/results; composite and anonymous-access profiles are diagnosed.
+component, object or subprogram profile. C callbacks support native scalars,
+compatible one-dimensional array parameters, and the pointer profiles listed
+in the [native C call contract](interfaces-c-abi.md#native-c-calls).
 
 C callback values are native function pointers. They can be called from Ada,
 passed to an imported C routine, or returned by one. Indirect calls reuse the
-existing C argument/result marshaller, including floating point classes,
+same marshaller as direct C imports, including floating-point classes,
 representation-coded enumerations, writable scalar parameters and null checks.
 Foreign integer calls use the C ABI class matching the declared storage width.
 Narrow integer results are extended to the Ada arithmetic class using their
 signedness. Enumeration imports retain their word-sized representation codes.
-Direct calls to reserved `__ada_` hooks retain their established helper profiles.
+Calls to reserved `__ada_` hooks retain their established compiler-runtime profiles.
 Function addresses are relocated through constant data, which also works for
 external symbols on macOS without modifying QBE.
 
 The subprogram and access type must have matching conventions. An ordinary
-Ada callback or anonymous Ada access definition cannot directly designate a
-C import. Defining ordinary Ada subprograms with convention C, exporting Ada
-callbacks to C, general foreign composite profiles and broader ABI portability
-remain later interfacing work and receive diagnostics where unsupported.
+Ada callback or anonymous Ada access-to-subprogram definition cannot directly
+designate a C import. Ada-defined callback exports and record results remain
+outside the supported subset.
 
 ## Inherited tagged operations
 

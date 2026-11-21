@@ -22,12 +22,15 @@ end Standard_Facility_Views;
 
 with Standard_Facility_Views;
 with Ada.Text_IO;
+with Interfaces.C;
 with System;
 procedure StandardFacilities is
     use type System.Address;
     use type System.Name;
     use type System.Bit_Order;
-    function Fill (Destination : System.Address; Value : Integer; Count : Long_Integer) return System.Address;
+    use type Interfaces.C.int;
+    function Fill (Destination : System.Address; Value : Interfaces.C.int;
+                   Count : Interfaces.C.size_t) return System.Address;
     pragma Import (C, Fill, "memset");
     package Machine renames System;
     package Codes renames Standard.ASCII;
@@ -89,7 +92,7 @@ procedure StandardFacilities is
         Check (N = System.AIDA_64 and Order = System.Low_Order_First);
         Check (P = 15 and System.Priority'First = 0 and System.Priority'Last = 30);
         Check (System.Any_Priority'Last = 31 and System.Interrupt_Priority'First = 31);
-        Filled := Fill (Highest'Address, -1, System.Address'Size / System.Storage_Unit);
+        Filled := Fill (Highest'Address, -1, Interfaces.C.size_t (System.Address'Size / System.Storage_Unit));
         Check (Filled = Highest'Address);
         Check (Greater (Highest, A) and Less (System.Null_Address, Highest));
         Check (Generic_Less (A, Highest) and not Less (Highest, A));

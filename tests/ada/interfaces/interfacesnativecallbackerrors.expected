@@ -1,0 +1,6 @@
+interfacesnativecallbackerrors.adb:7:5: error: unsupported representation for C Convention
+interfacesnativecallbackerrors.adb:9:5: error: unsupported representation for C Convention
+interfacesnativecallbackerrors.adb:11:5: error: unsupported C callback parameter type for 'Value'
+interfacesnativecallbackerrors.adb:13:5: error: unsupported C callback result type
+interfacesnativecallbackerrors.adb:15:5: error: a protected callback cannot use C Convention
+interfacesnativecallbackerrors.adb:20:32: error: a runtime helper with array or anonymous access parameters cannot be used as a C callback

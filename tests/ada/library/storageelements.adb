@@ -1,4 +1,5 @@
 with Ada.Text_IO;
+with Interfaces.C;
 with System.Storage_Elements;
 procedure StorageElements is
     use System.Storage_Elements;
@@ -19,9 +20,10 @@ procedure StorageElements is
     function Generic_Add is new Apply (SE."+");
     function Default_Add is new Apply;
     function Generic_Subtract is new Apply (SE."-");
-    function Fill (Destination : System.Address; Value : Integer; Count : Long_Integer) return System.Address;
+    function Fill (Destination : System.Address; Value : Interfaces.C.int;
+                   Count : Interfaces.C.size_t) return System.Address;
     pragma Import (C, Fill, "memset");
-    function Copy (Destination, Source : System.Address; Count : Long_Integer) return System.Address;
+    function Copy (Destination, Source : System.Address; Count : Interfaces.C.size_t) return System.Address;
     pragma Import (C, Copy, "memcpy");
     procedure Check (Value : Boolean) is
     begin

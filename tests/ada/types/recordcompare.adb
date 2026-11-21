@@ -1,4 +1,5 @@
 with Ada.Text_IO; use Ada.Text_IO;
+with Interfaces.C;
 with System;
 
 procedure RecordCompare is
@@ -26,7 +27,7 @@ procedure RecordCompare is
 
     -- Give inactive storage different, deterministic bytes. The aggregates
     -- restore every live component before the objects are compared.
-    procedure Fill (Address : System.Address; Byte : Integer; Size : Long_Integer);
+    procedure Fill (Address : System.Address; Byte : Interfaces.C.int; Size : Interfaces.C.size_t);
     pragma Import (C, Fill, "memset");
 
     procedure Check (Condition : Boolean; Message : String) is
@@ -43,8 +44,8 @@ procedure RecordCompare is
     end Same;
 
 begin
-    Fill (A'Address, 85, Long_Integer (Payload'Size / 8));
-    Fill (B'Address, 170, Long_Integer (Payload'Size / 8));
+    Fill (A'Address, 85, Interfaces.C.size_t (Payload'Size / 8));
+    Fill (B'Address, 170, Interfaces.C.size_t (Payload'Size / 8));
     A := (Small, 'x', 7);
     B := (Small, 'x', 7);
     Check (A = B, "inactive variant storage is ignored");
@@ -55,8 +56,8 @@ begin
     B.Code := 'y';
     Check (A /= B, "common field difference");
 
-    Fill (E'Address, 85, Long_Integer (Payload'Size / 8));
-    Fill (F'Address, 170, Long_Integer (Payload'Size / 8));
+    Fill (E'Address, 85, Interfaces.C.size_t (Payload'Size / 8));
+    Fill (F'Address, 170, Interfaces.C.size_t (Payload'Size / 8));
     E := (Empty, 'x');
     F := (Empty, 'x');
     Check (E = F, "empty variant ignores all variant storage");

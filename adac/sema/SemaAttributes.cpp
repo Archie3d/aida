@@ -470,6 +470,13 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "subprogram and access type must have the same calling convention");
             return nullptr;
         }
+        if (importedC && implementation->builtin == BuiltinKind::Runtime && !isNativeCImport(implementation)
+            && std::any_of(implementation->parameters.begin(), implementation->parameters.end(), [](const Symbol* formal) {
+                return formal->type->kind == TypeKind::Array || formal->type->anonymousAccess;
+            })) {
+            m_diagnostics.error(expr->location, "a runtime helper with array or anonymous access parameters cannot be used as a C callback");
+            return nullptr;
+        }
         bool accessible = chosen->accessibilityLevel <= expected->accessLevel;
         Scope* declarationScope = chosen->renamedAccess != nullptr
             ? chosen->renamedAccess->type->accessScope : chosen->declarationScope;

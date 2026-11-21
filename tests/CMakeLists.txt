@@ -3066,6 +3066,9 @@ add_test(NAME host.abi_layout COMMAND host_abi_report)
 add_determinism_test(hostabi SOURCE driver/hostabi.adb)
 add_determinism_test(interfacesscalars SOURCE interfaces/interfacesscalars.adb)
 add_ada_error_test(interfacesscalarerrors SOURCES interfaces/interfacesscalarerrors.adb)
+add_determinism_test(interfacesnative SOURCE interfaces/interfacesnative.adb)
+add_ada_error_test(interfacesnativeimporterrors SOURCES interfaces/interfacesnativeimporterrors.adb)
+add_ada_error_test(interfacesnativecallbackerrors SOURCES interfaces/interfacesnativecallbackerrors.adb)
 set(interfaces_mode_arguments
     -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
     -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
@@ -3086,7 +3089,19 @@ add_test(NAME host.interfaces_long_double
         -DUNAVAILABLE=${CMAKE_CURRENT_SOURCE_DIR}/ada/interfaces/interfaceslongdoubleunavailable.adb
         "-DWORKDIR=${ADA_TEST_WORK_DIR}/Interfaces long double"
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckInterfacesLongDouble.cmake)
+add_test(NAME host.interfaces_native_calls
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/host/NativeCAbi.c
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/interfaces/interfacesnative.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/interfaces/interfacesnative.expected
+        "-DWORKDIR=${ADA_TEST_WORK_DIR}/Interfaces native calls"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(host.interfaces_scalar_types host.interfaces_long_double determinism.interfacesscalars
+    host.interfaces_native_calls determinism.interfacesnative
     PROPERTIES TIMEOUT 60 LABELS "host")
 add_determinism_test(cscalarwidth SOURCE numerics/cscalarwidth.adb)
 add_test(NAME host.c_scalar_widths

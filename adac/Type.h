@@ -301,7 +301,7 @@ struct Type
     bool accessProtected = false;
     bool accessConventionC = false;
     bool accessConventionFrozen = false;
-    bool accessConventionSpecified = false;
+    bool conventionSpecified = false;
     bool aliasedElements = false;
     // Subprogram access uses a signature instead of an object target.
     Symbol* accessProfile = nullptr;

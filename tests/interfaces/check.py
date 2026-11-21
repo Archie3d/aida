@@ -58,6 +58,10 @@ package Model is
     type Tagged_Item is tagged record N : Integer; end record;
     function Next (X : Tagged_Item) return Integer;
     function Native_Count (Value : Interfaces.C.size_t) return Interfaces.C.size_t;
+    type Length_Function is access function (Value : Interfaces.C.char_array) return Interfaces.C.size_t;
+    pragma Convention (C, Length_Function);
+    function Measure (Value : Interfaces.C.char_array) return Interfaces.C.size_t;
+    pragma Import (C, Measure, "strlen");
     Failure : exception;
 private
     type Item is record N : Integer; end record;
@@ -111,6 +115,7 @@ procedure Client is
     T : Model.Tagged_Item := (N => 4);
     C_Text : Interfaces.C.char_array := Interfaces.C.To_C (String'("source-free"));
     Text : String := Interfaces.C.To_Ada (C_Text);
+    Measure : Model.Length_Function := Model.Measure'Access;
 begin
     Helper;
     if Model.Value (X) /= 5 or else Model.Value (3) /= 4
@@ -118,7 +123,8 @@ begin
         or else Alias.Seed /= 5 or else Extras.N + Other_Extras.N /= 8
         or else Consumer.N /= 7 or else Split.Value /= 11 or else Decl_View.N + Index_Name.N /= 7
         or else Model.Native_Count (16#4000_0000_0000_0000#) /= 16#8000_0000_0000_0000#
-        or else Text /= "source-free" then
+        or else Text /= "source-free"
+        or else Model.Measure (C_Text) /= 11 or else Measure (C_Text) /= 11 then
         raise Program_Error;
     end if;
     begin raise Model.Failure; exception when Model.Failure => null; end;

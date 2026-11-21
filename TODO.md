@@ -48,13 +48,14 @@ following in dependency order:
   embedded/missing NULs, short targets and character-mapping failures. Reuse
   caller-owned array results and cleanup paths; preserve aliased element identity.
   [Conversion contract](docs/interfaces-c-abi.md#character-arrays-and-conversions).
-- [ ] **Native C call boundary.** Separate foreign C marshalling from
+- [x] **Native C call boundary.** Separate foreign C marshalling from
   internal runtime helper conventions. Pass compatible arrays as element
   pointers without hidden Ada lengths/descriptors; preserve mutability and
   lifetime. Extend convention checking and checked interfaces for the package
   types, access values and existing imported callbacks. Prove direct/indirect
   scalar, pointer and array calls against C helpers in whole/per-unit builds;
   diagnose unsupported profiles before emission.
+  [Native call contract](docs/interfaces-c-abi.md#native-c-calls).
 - [ ] **Interfaces.C.Strings.** Implement native `chars_ptr`, null/default
   initialization, borrowed array views, allocation/free, length/value and update
   operations. Distinguish borrowed and owned storage and document foreign

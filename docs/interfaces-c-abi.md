@@ -211,4 +211,54 @@ builds, including bounds at `size_t'Last`, aliased element access, and errors.
 The conversion fixture passed with native 32-bit `wchar_t` on Darwin arm64
 and with simulated 16-bit `wchar_t` facts. All 2,220 Darwin arm64 Release checks
 and six focused ASan/UBSan checks passed.
-Passing arrays directly to native C subprograms is the next Phase 13 item.
+
+## Native C calls
+
+Fixed-arity native `Import (C, ...)` declarations and named C callbacks share
+one call convention. A compatible one-dimensional array contributes a single
+pointer to its elements to the C argument list. This covers the four
+`Interfaces.C` character arrays and rank-one arrays with naturally laid-out
+integer, floating-point or compatible enumeration elements. Slice arguments
+start at the slice's first element. Constrained formals still check the array
+shape. `out` and `in out` arrays allow C to write to their elements.
+
+C code must observe the declared parameter mode, stay within the actual
+buffer, and supply valid Ada component values when it writes. The caller must
+pass an explicit length or arrange termination as required by the C routine.
+An empty array has no element to dereference. C may borrow array actuals,
+including temporary conversion results, for the duration of the call.
+Retaining a pointer requires independently managed storage that outlives every
+use of that pointer.
+
+Native scalars use their C register and storage classes. Ordinary enumeration
+values and results use word-sized C codes. Writable scalar and pointer formals
+pass addresses of temporaries with the formal's storage width and checked
+copy-back on normal return. Fixed-layout untagged records with naturally laid-out
+scalar fields can also be passed by reference. Named
+access-to-object values and anonymous object access parameters can designate
+compatible scalar storage. Named C access-to-subprogram values and
+`System.Address` also cross the boundary as native pointers. Ada's null
+exclusions still apply. Memory reached through a returned pointer stays under
+its original ownership. [Ada 2005 RM B.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3.html).
+
+`Convention (C, ...)` can check the layout of a named compatible array or
+object access type and can select the native calling convention for a named
+callback type. Unsupported profiles, including packed or multidimensional
+array parameters, tagged record parameters, composite and anonymous access
+results, pointers to composites, and Ada closure parameters, are diagnosed
+before code generation.
+Imports of reserved `__ada_` symbols use the compiler-runtime profiles.
+
+`host.interfaces_native_calls` links a C helper in whole and per-unit builds
+and verifies all four character layouts, mixed arguments, pointer results,
+slice writes and indirect calls. The source-free interface fixture calls
+`strlen` both directly and through a C callback after replaying the checked
+package interface. The libc fixtures use `Interfaces.C.int` and
+`Interfaces.C.size_t` for C integer parameters, results and byte counts.
+The Ada fixture and C helper compile to objects for the five
+target configurations in the matrix, using simulated target facts for
+Windows LLP64 and Linux arm64. Runtime execution was verified on Darwin arm64.
+
+The 2,224-test Release run found three regressions in the enumeration and
+record layout fixtures. All three passed in the final 116-test Release sweep.
+The 23 focused ABI checks and 13 libc fixture checks passed with ASan/UBSan.

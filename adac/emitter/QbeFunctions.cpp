@@ -130,16 +130,17 @@ bool hasControlledObjects(StmtList& statements)
     return false;
 }
 
-std::string incomingParameters(const Symbol* symbol, bool adaConvention)
+std::string incomingParameters(const Symbol* symbol, bool adaConvention, bool nativeC = false)
 {
     std::string parameters;
     for (Symbol* parameter : symbol->parameters) {
         if (!parameters.empty()) {
             parameters += ", ";
         }
-        char type = parameter->byReference ? 'l' : qbeClass(parameter->type);
+        std::string type = parameter->byReference ? "l" : nativeC ? QbeSupport::cScalarClass(parameter->type)
+            : std::string(1, qbeClass(parameter->type));
         std::string name = "%p." + Unicode::linkerIdentifier(parameter->name);
-        parameters += std::string(1, type) + " " + name;
+        parameters += type + " " + name;
         if (adaConvention && parameter->type->accessParameter) {
             parameters += ", w " + name + ".accessLevel";
         }
@@ -237,7 +238,8 @@ void QbeEmitter::emitImportGuard(Symbol* symbol)
     while (imported->renamedSubprogram != nullptr) {
         imported = imported->renamedSubprogram;
     }
-    if (!imported->importAda && std::any_of(imported->parameters.begin(), imported->parameters.end(),
+    bool nativeC = isNativeCImport(imported);
+    if (!imported->importAda && !nativeC && std::any_of(imported->parameters.begin(), imported->parameters.end(),
         [](Symbol* parameter) {
             Type* type = parameter->type;
             return !isScalar(type) || type->anonymousAccess
@@ -260,7 +262,7 @@ void QbeEmitter::emitImportGuard(Symbol* symbol)
     context.propagateLabel = newLabel("propagate");
     FunctionContext* saved = m_context;
     m_context = &context;
-    std::string parameters = incomingParameters(imported, imported->importAda);
+    std::string parameters = incomingParameters(imported, imported->importAda, nativeC);
     emitCallInstruction("call " + imported->runtimeSymbol + "(" + parameters + ")", CallEffects::CheckException);
     finishFunction(std::string(symbol->level == 0 ? "export function " : "function ")
         + entry + "(" + parameters + ")");

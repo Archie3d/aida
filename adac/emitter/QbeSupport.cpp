@@ -48,6 +48,23 @@ bool isLiteralOperand(const std::string& operand)
     return true;
 }
 
+std::string cScalarClass(const Type* type)
+{
+    if (type->kind == TypeKind::Integer || type->cCharacter != CCharacterConvention::None) {
+        const Type* storage = type;
+        while (storage->isSubtype && storage->base != nullptr) { storage = storage->base; }
+        bool signedValue = type->kind == TypeKind::Integer ? scalarStorageSigned(storage)
+            : type->cCharacter == CCharacterConvention::Signed;
+        switch (typeSize(type)) {
+        case 1: return signedValue ? "sb" : "ub";
+        case 2: return signedValue ? "sh" : "uh";
+        case 4: return "w";
+        case 8: return "l";
+        }
+    }
+    return std::string(1, qbeClass(type));
+}
+
 const char* comparisonInstruction(BinaryOp op, char type, bool isUnsigned)
 {
     if (isUnsigned) {

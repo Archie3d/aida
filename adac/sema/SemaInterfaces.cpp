@@ -1,5 +1,82 @@
 #include "Sema.h"
 #include "../../common/CAbiFacts.h"
+
+#include <algorithm>
+
+namespace {
+
+bool nativeCScalar(const Type* type)
+{
+    if (type->kind == TypeKind::Float) {
+        return typeSize(type) == 4 || typeSize(type) == 8;
+    }
+    if (type->kind != TypeKind::Integer && type->kind != TypeKind::Enumeration) {
+        return false;
+    }
+    long long size = typeSize(type);
+    return size == 1 || size == 2 || size == 4 || size == 8;
+}
+
+bool nativeCElement(const Type* type)
+{
+    return type != nullptr && !type->isIncomplete && nativeCScalar(type) && typeAlignment(type) == typeSize(type)
+        && (type->kind != TypeKind::Enumeration || typeSize(type) == 4
+            || type->cCharacter != CCharacterConvention::None);
+}
+
+bool nativeCObjectTarget(const Type* type)
+{
+    return nativeCElement(type) && sharedTypeKind(type) == 0;
+}
+
+bool nativeCArray(const Type* type)
+{
+    return type->arrayRank == 1 && type->packedComponentBits == 0
+        && nativeCObjectTarget(type->element) && typeAlignment(type) >= typeAlignment(type->element);
+}
+
+bool nativeCRecord(Type* type)
+{
+    Type* layout = baseType(type);
+    return !layout->tagged && !layout->isLimited && layout->discriminantCount == 0
+        && !layout->fields.empty() && !hasRuntimeLayout(type) && !needsFinalization(type)
+        && std::all_of(layout->fields.begin(), layout->fields.end(), [&](const FieldInfo& field) {
+            return field.bitWidth == 0 && nativeCObjectTarget(field.type)
+                && typeAlignment(type) >= typeAlignment(field.type)
+                && field.offset % typeAlignment(field.type) == 0;
+        });
+}
+
+} // namespace
+
+bool Sema::supportsNativeCResult(Type* type)
+{
+    if (type == nullptr || rootType(type) == m_addressType) { return true; }
+    if (type->isIncomplete) { return false; }
+    if (type->kind != TypeKind::Access) { return nativeCScalar(type); }
+    if (type->anonymousAccess) { return false; }
+    if (type->accessProfile != nullptr) { return type->accessConventionC; }
+    return nativeCObjectTarget(type->target);
+}
+
+bool Sema::supportsNativeCParameter(const Symbol* parameter)
+{
+    Type* type = parameter->type;
+    if (type == nullptr || type->isIncomplete) { return false; }
+    if (type->kind == TypeKind::Array) { return nativeCArray(type); }
+    if (type->kind == TypeKind::Record) { return nativeCRecord(type); }
+    if (type->kind == TypeKind::Access && type->anonymousAccess) {
+        return parameter->mode == ParameterMode::In && type->accessParameter
+            && type->accessProfile == nullptr && nativeCObjectTarget(type->target);
+    }
+    return supportsNativeCResult(type);
+}
+
+bool Sema::supportsNativeCStorage(Type* type)
+{
+    return !type->isIncomplete && (type->kind == TypeKind::Array ? nativeCArray(type)
+        : type->kind == TypeKind::Access && type->accessProfile == nullptr && supportsNativeCResult(type));
+}
 #include "SemaSupport.h"
 
 Type* Sema::interfacesCTargetType(const std::string& lower, Scope* scope, const SourceLocation& location)

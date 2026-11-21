@@ -390,13 +390,7 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
     if (expr->indirect && expr->callee != nullptr && expr->callee->type->accessConventionC) {
         Value code = emitExpr(expr->callee.get());
         checkNotNull(code);
-        Symbol imported = *subprogram;
-        imported.runtimeSymbol = code.name;
-        imported.importAda = false;
-        Value result = emitRuntimeCall(expr, &imported);
-        emitExceptionCheck();
-        emitRangeCheck(result, imported.returnType, expr->location);
-        return result;
+        return emitNativeCCall(expr, subprogram, code.name);
     }
     if (!expr->dispatching && subprogram->inheritedFrom != nullptr && subprogram->renamedSubprogram == nullptr) {
         CallExpr inherited;
@@ -503,6 +497,9 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         return result;
     }
     DiscriminantScope discriminants(m_context);
+    if (isNativeCImport(subprogram)) {
+        return emitNativeCCall(expr, subprogram, subprogram->runtimeSymbol);
+    }
     bool adaImport = isAdaImport(subprogram);
     if (subprogram->builtin == BuiltinKind::Runtime && !adaImport) {
         // File queries return borrowed handle snapshots rather than constructing
@@ -1193,28 +1190,101 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
     return result;
 }
 
-static std::string cScalarClass(Type* type)
+Value QbeEmitter::emitNativeCCall(CallExpr* expr, Symbol* profile, const std::string& callee)
 {
-    if (type->kind == TypeKind::Integer || type->cCharacter != CCharacterConvention::None) {
-        bool signedValue = type->kind == TypeKind::Integer ? scalarStorageSigned(type)
-            : type->cCharacter == CCharacterConvention::Signed;
-        switch (typeSize(type)) {
-        case 1: return signedValue ? "sb" : "ub";
-        case 2: return signedValue ? "sh" : "uh";
-        case 4: return "w";
-        case 8: return "l";
+    struct ScalarCopyBack
+    {
+        Expr* argument;
+        Value actual;
+        Value temporary;
+        Type* formal;
+    };
+    std::vector<ScalarCopyBack> scalarCopies;
+    std::vector<ArrayCopyBack> arrayCopies;
+    std::vector<StorageCopyBack> storageCopies;
+    std::string arguments;
+    for (std::size_t i = 0; i < profile->parameters.size(); ++i) {
+        Symbol* parameter = profile->parameters[i];
+        Expr* argument = expr->resolvedArguments[i];
+        Type* formal = parameter->type;
+        if (!arguments.empty()) { arguments += ", "; }
+        if (formal->kind == TypeKind::Array) {
+            Value array = emitArrayArgument(argument, parameter->mode, arrayCopies);
+            if (formal->constrained || formal->boundsSymbol != nullptr) {
+                array = convertArrayBounds(array, argument->type, formal, argument->location);
+            }
+            arguments += "l " + array.name;
+        } else if (formal->kind == TypeKind::Record) {
+            Value address = adaptCompositeStorage(emitExpr(argument), argument->type, formal, parameter->mode, storageCopies);
+            arguments += "l " + address.name;
+        } else if (parameter->mode != ParameterMode::In) {
+            Value temporary {allocTypeScratch(formal), 'l'};
+            Value actual = emitAddress(argument);
+            if (parameter->mode == ParameterMode::InOut || formal->kind == TypeKind::Access) {
+                Value value = loadFrom(actual, argument->type);
+                if (parameter->mode == ParameterMode::InOut) {
+                    emitRangeCheck(value, formal, argument->location);
+                }
+                storeInto(temporary, value, formal);
+            }
+            scalarCopies.push_back({argument, actual, temporary, formal});
+            arguments += "l " + temporary.name;
+        } else {
+            Value value = emitExpr(argument);
+            emitRangeCheck(value, formal, argument->location);
+            value = enumCode(value, formal);
+            std::string abiClass = QbeSupport::cScalarClass(formal);
+            if (abiClass == "l" && value.type == 'w') {
+                std::string wide = newTemp();
+                line(wide + " =l " + (scalarStorageSigned(formal) ? "extsw " : "extuw ") + value.name);
+                value = Value {wide, 'l'};
+            }
+            arguments += abiClass + " " + value.name;
         }
     }
-    return std::string(1, qbeClass(type));
+
+    Type* resultType = profile->returnType;
+    std::string abiClass = resultType != nullptr ? QbeSupport::cScalarClass(resultType) : "";
+    std::string result = resultType != nullptr ? newTemp() : "0";
+    std::string prefix = resultType != nullptr ? result + " =" + abiClass + " " : "";
+    emitCallInstruction(prefix + "call " + callee + "(" + arguments + ")", CallEffects::CheckException);
+    for (const ScalarCopyBack& copy : scalarCopies) {
+        Value value = loadFrom(copy.temporary, copy.formal);
+        emitRangeCheck(value, copy.formal, copy.argument->location);
+        emitRangeCheck(value, copy.argument->type, copy.argument->location, &copy.actual);
+        storeInto(copy.actual, value, copy.argument->type);
+    }
+    emitStorageCopyBacks(storageCopies);
+    emitArrayCopyBacks(arrayCopies);
+    if (resultType == nullptr) { return Value {"0", 'w'}; }
+
+    if (abiClass.size() == 2) {
+        std::string extended = newTemp();
+        // C's char signedness affects the ABI. Ada uses nonnegative positions.
+        std::string extension = abiClass;
+        if (resultType->cCharacter != CCharacterConvention::None) { extension[0] = 'u'; }
+        line(extended + " =w ext" + extension + " " + result);
+        result = extended;
+    }
+    char type = qbeClass(resultType);
+    if (type == 'l' && abiClass != "l") {
+        std::string extended = newTemp();
+        line(extended + " =l " + (scalarStorageSigned(resultType) ? "extsw " : "extuw ") + result);
+        result = extended;
+    } else if (type == 'w' && abiClass == "l") {
+        std::string narrow = newTemp();
+        line(narrow + " =w copy " + result);
+        result = narrow;
+    }
+    Value value = enumPosition(Value {result, type}, resultType);
+    emitRangeCheck(value, resultType, expr->location);
+    return value;
 }
 
 // Arrays currently become a pointer and a length, anything writable or
 // composite becomes an address, and everything else travels by value.
 Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 {
-    // Runtime hooks use their established Ada-facing profiles. Foreign C
-    // imports and function pointers use the storage width and C ABI class.
-    bool nativeC = !subprogram->importAda && !subprogram->runtimeSymbol.starts_with("$__ada_");
     std::vector<std::string> arguments;
     std::vector<ArrayCopyBack> arrayCopies;
     std::vector<StorageCopyBack> storageCopies;
@@ -1293,14 +1363,14 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 
         Value value = emitExpr(argument);
         emitRangeCheck(value, parameter->type, argument->location);
-        if (!subprogram->importAda) { value = enumCode(value, parameter->type); }
-        std::string convention = nativeC ? cScalarClass(formal) : std::string(1, qbeClass(formal));
-        if (convention == "l" && value.type == 'w') {
+        value = enumCode(value, parameter->type);
+        char convention = qbeClass(formal);
+        if (convention == 'l' && value.type == 'w') {
             std::string wide = newTemp();
             line(wide + " =l " + (scalarStorageSigned(formal) ? "extsw " : "extuw ") + value.name);
             value = Value { wide, 'l' };
         }
-        arguments.push_back(convention + " " + value.name);
+        arguments.push_back(std::string(1, convention) + " " + value.name);
     }
 
     if (subprogram->runtimeSymbol == "$__ada_file_stream_view" && m_sema.fileStreamType() != nullptr) {
@@ -1353,36 +1423,13 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 
     Type* returnType = subprogram->returnType;
     char type = qbeClass(returnType);
-    std::string convention = nativeC ? cScalarClass(returnType) : std::string(1, type);
     std::string temp = newTemp();
-    emitCallInstruction(temp + " =" + convention + " call " + subprogram->runtimeSymbol + "(" + argumentList + ")", CallEffects::DeferredCheck);
-    if (convention.size() == 2) {
-        std::string extended = newTemp();
-        // The foreign character's sign affects its calling convention. Its
-        // Ada representation is the nonnegative character position.
-        std::string extension = convention;
-        if (returnType->cCharacter != CCharacterConvention::None) { extension[0] = 'u'; }
-        line(extended + " =w ext" + extension + " " + temp);
-        temp = extended;
-    }
-    if (type == 'l' && convention != "l") {
-        std::string extended = newTemp();
-        line(extended + " =l " + (scalarStorageSigned(returnType) ? "extsw " : "extuw ") + temp);
-        temp = extended;
-    } else if (type == 'w' && convention == "l") {
-        std::string narrow = newTemp();
-        line(narrow + " =w copy " + temp);
-        temp = narrow;
-    }
+    emitCallInstruction(temp + " =" + type + " call " + subprogram->runtimeSymbol + "(" + argumentList + ")", CallEffects::DeferredCheck);
     copyBack();
-    if (nativeC && returnType->cCharacter != CCharacterConvention::None) {
+    if (!returnType->enumCodes.empty()) {
         emitExceptionCheck();
-        emitRangeCheck(Value {temp, type}, returnType, expr->location);
-    }
-    if (!subprogram->importAda && !subprogram->returnType->enumCodes.empty()) {
-        emitExceptionCheck();
-        Value value = enumPosition(Value { temp, type }, subprogram->returnType);
-        emitRangeCheck(value, subprogram->returnType, expr->location);
+        Value value = enumPosition(Value { temp, type }, returnType);
+        emitRangeCheck(value, returnType, expr->location);
         return value;
     }
     return Value { temp, type };

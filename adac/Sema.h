@@ -95,6 +95,9 @@ private:
     void analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope);
     void analyzePragma(PragmaDecl* decl, Scope* scope);
     void analyzeInterfacesIntrinsic(PragmaDecl* decl, Scope* scope, Symbol* target);
+    bool supportsNativeCParameter(const Symbol* parameter);
+    bool supportsNativeCResult(Type* type);
+    bool supportsNativeCStorage(Type* type);
     Type* interfacesCTargetType(const std::string& lower, Scope* scope, const SourceLocation& location);
     bool declareUnavailableLongDouble(TypeDecl* decl, Scope* scope);
     void setInterfacesCCharacterConvention(Type* type, const TypeDecl* decl, Scope* scope);
@@ -182,6 +185,8 @@ private:
     std::unordered_set<Symbol*> m_noReturnRequired;
     std::vector<std::pair<Symbol*, Symbol*>> m_noReturnRenamings;
     std::vector<std::pair<Symbol*, SourceLocation>> m_noReturnAccesses;
+    std::vector<std::pair<Symbol*, SourceLocation>> m_cCallbackProfiles;
+    std::vector<std::pair<Type*, SourceLocation>> m_cStorageConventions;
     std::unordered_set<Type*> m_storageControlledTypes;
     std::unordered_set<Type*> m_frozenTypes;
     std::unordered_set<Type*>* m_instanceFreezeTypes = nullptr;

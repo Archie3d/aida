@@ -1,6 +1,7 @@
 with Ada.Text_IO;
 with Ada.Finalization;
 with Ada.Unchecked_Deallocation;
+with Interfaces.C;
 with System.Address_To_Access_Conversions;
 with System.Storage_Elements;
 with Address_Views;
@@ -23,7 +24,7 @@ procedure AddressConversions is
     end Apply;
     function Generic_Pointer is new Apply (Integers.To_Pointer);
     function Default_Pointer is new Apply;
-    function Allocate (Size : Long_Integer) return System.Address;
+    function Allocate (Size : Interfaces.C.size_t) return System.Address;
     pragma Import (C, Allocate, "malloc");
     procedure Release (Value : System.Address);
     pragma Import (C, Release, "free");
@@ -117,7 +118,7 @@ procedure AddressConversions is
         procedure Free_Instance is new Ada.Unchecked_Deallocation (Guard, Guards.Object_Pointer);
     begin
         Check (Derived = Derived_Pointer (P) and To_Address (Derived) = X'Address);
-        Foreign := Allocate (Integer'Size / System.Storage_Unit);
+        Foreign := Allocate (Interfaces.C.size_t (Integer'Size / System.Storage_Unit));
         if Foreign = System.Null_Address then raise Storage_Error; end if;
         declare
             package Foreign_Views is new Views (Integer);

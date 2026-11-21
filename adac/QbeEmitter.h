@@ -455,6 +455,7 @@ private:
     Value emitCallValue(CallExpr* expr, Type* inheritedControllingType);
     Value consumeArrayResult(const std::string& resultStorage, int rank, bool adopt);
     Value emitRuntimeCall(CallExpr* expr, Symbol* subprogram);
+    Value emitNativeCCall(CallExpr* expr, Symbol* profile, const std::string& callee);
 
     // Operators (QbeOperators.cpp).
     Value emitBinary(BinaryExpr* expr);

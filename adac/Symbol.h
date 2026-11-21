@@ -214,6 +214,12 @@ inline bool isAdaImport(const Symbol* symbol)
     return symbol->builtin == BuiltinKind::Runtime && symbol->importAda;
 }
 
+inline bool isNativeCImport(const Symbol* symbol)
+{
+    return symbol->builtin == BuiltinKind::Runtime && !symbol->importAda
+        && !symbol->runtimeSymbol.starts_with("$__ada_");
+}
+
 // Prefer the imported entity's guard when all its views already share it.
 inline Symbol* importedNoReturnView(Symbol* symbol)
 {

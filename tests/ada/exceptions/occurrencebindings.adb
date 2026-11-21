@@ -1,16 +1,18 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
+with Interfaces.C;
 with System;
 with Occurrencepackage;
 
 procedure Occurrencebindings is
+    use type Interfaces.C.int;
     Original, Other : exception;
     E : Integer := 42;
     Visits : Integer := 0;
 
     -- Inspect the current pointer-sized identity payload without adding a
     -- public inspection operation before the next implementation phase.
-    function Compare_Bytes (Left, Right : System.Address; Count : Long_Integer) return Integer;
+    function Compare_Bytes (Left, Right : System.Address; Count : Interfaces.C.size_t) return Interfaces.C.int;
     pragma Import (C, Compare_Bytes, "memcmp");
 
     procedure Observe (Item : Exception_Occurrence; Expected : System.Address) is

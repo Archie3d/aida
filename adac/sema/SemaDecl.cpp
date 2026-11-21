@@ -1388,30 +1388,48 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
     }
     if (decl->lower == "convention") {
         Symbol* entity = candidates.size() == 1 ? candidates.front() : nullptr;
-        Type* type = entity != nullptr ? entity->type : nullptr;
-        if (entity == nullptr || entity->kind != SymbolKind::TypeName || type == nullptr
-            || type->isSubtype || type->accessProfile == nullptr || type->anonymousAccess) {
-            m_diagnostics.error(decl->location, "pragma Convention currently requires a named access-to-subprogram type");
+        Type* type = entity != nullptr && entity->kind == SymbolKind::TypeName ? entity->type : nullptr;
+        bool callback = type != nullptr && type->accessProfile != nullptr && !type->anonymousAccess;
+        bool storage = type != nullptr && !decl->conventionAda && !callback
+            && (type->kind == TypeKind::Array || type->kind == TypeKind::Access);
+        if (type == nullptr || type->isSubtype || (!callback && !storage)) {
+            m_diagnostics.error(decl->location, "pragma Convention requires a named callback type or a C-compatible array or object access type");
             return;
         }
-        if (type->accessConventionFrozen || type->accessConventionSpecified || m_frozenTypes.contains(type)) {
-            m_diagnostics.error(decl->location, "callback Convention must be specified once, before uses of the access type");
+        if (type->accessConventionFrozen || type->conventionSpecified || m_frozenTypes.contains(type)) {
+            m_diagnostics.error(decl->location, callback ? "callback Convention must be specified once, before uses of the access type"
+                : "C Convention must be specified once, before freezing the type");
+            return;
+        }
+        if (storage) {
+            if (!supportsNativeCStorage(type)) {
+                m_diagnostics.error(decl->location, "unsupported representation for C Convention");
+                return;
+            }
+            type->conventionSpecified = true;
+            m_cStorageConventions.emplace_back(type, decl->location);
             return;
         }
         if (!decl->conventionAda) {
-            auto supported = [](Type* value) {
-                return value == nullptr || (isScalar(value) && !value->anonymousAccess
-                    && (value->accessProfile == nullptr || value->accessConventionC));
-            };
-            bool valid = supported(type->accessProfile->returnType);
-            for (Symbol* parameter : type->accessProfile->parameters) { valid &= supported(parameter->type); }
-            if (!valid) {
-                m_diagnostics.error(decl->location, "C callback profiles currently require scalar or named access parameters and results");
+            if (type->accessProtected) {
+                m_diagnostics.error(decl->location, "a protected callback cannot use C Convention");
                 return;
             }
+            Symbol* profile = type->accessProfile;
+            if (!supportsNativeCResult(profile->returnType)) {
+                m_diagnostics.error(decl->location, "unsupported C callback result type");
+                return;
+            }
+            for (Symbol* parameter : profile->parameters) {
+                if (!supportsNativeCParameter(parameter)) {
+                    m_diagnostics.error(decl->location, "unsupported C callback parameter type for '" + parameter->displayName + "'");
+                    return;
+                }
+            }
+            m_cCallbackProfiles.emplace_back(profile, decl->location);
         }
         type->accessConventionC = !decl->conventionAda;
-        type->accessConventionSpecified = true;
+        type->conventionSpecified = true;
         return;
     }
     Symbol* target = nullptr;
