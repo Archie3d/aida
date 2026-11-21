@@ -12,6 +12,46 @@ failures and raw B-probes are recorded separately in
 [the triage report](../../docs/acats-baseline.md). Matching a recorded failure
 is not an ACATS pass.
 
+## Phase 13 Interfaces.C selection
+
+Run the independent cases with `ctest --test-dir build -R '^acats\.cxb30' --output-on-failure`.
+Each case uses the existing REPORT adapter and must exit successfully with
+exactly its own `TEST` and `PASSED` lines. The registration pins each source's
+SHA-256 digest and verifies it before grading. The thirteen Ada sources are
+byte-for-byte copies from the pinned [ACATS `tests/cxb` directory](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxb).
+
+| Case | Objective | Darwin arm64 observation |
+| --- | --- | --- |
+| CXB3001 | `Interfaces.C` declarations and conversion profiles | PASS |
+| CXB3002 | `Interfaces.C.Strings` declarations | PASS |
+| CXB3003 | `Interfaces.C.Pointers` declarations and generic profiles | PASS |
+| CXB3005 | Narrow `To_C` procedure | PASS |
+| CXB3007 | Wide `To_C` procedure | PASS |
+| CXB3008 | Native libc `strcpy`, `strlen` and `strtod` imports | PASS |
+| CXB3009 | Borrowing an Ada character array through `To_Chars_Ptr` | PASS |
+| CXB3010 | `Free`, `Value` and length for allocated character arrays | PASS |
+| CXB3011 | String `Value` with NUL and counted bounds | PASS |
+| CXB3012 | Updating C strings through both overloads | PASS |
+| CXB3014 | Terminated and counted pointer `Value` | PASS |
+| CXB3015 | Element-stride pointer arithmetic and differences | PASS |
+| CXB3016 | Virtual length and pointer copies | PASS |
+
+CXB3001 declares `C.long_double` unconditionally. The local suite records a
+skip when the native C ABI report says Aida cannot represent that format.
+The test's upstream applicability criteria still apply to implementations
+providing `Interfaces.C`. `host.interfaces_long_double` separately verifies
+the target-specific rejection on these hosts.
+
+CXB3004, CXB3006 and CXB3013 were tried separately with the unchanged C
+companions and a local `Impdef` package defining their external names. All
+three stopped at the named `pragma Import` association. CXB3013 also needs a
+static external-name expression in a positional import. These are blocked
+cases and have no passing grade. CXB3017 requires `Export`, CXB3018 uses
+Ada 2012 aspects, and CXB3019 through CXB3024 require unchecked unions.
+[Host evidence and remaining ABI scope](../../docs/interfaces-c-abi.md#integration-audit).
+
+## Earlier selections
+
 `upstream/` contains unmodified sources from the
 [GCC ACATS mirror](https://github.com/gcc-mirror/gcc/tree/releases/gcc-14/gcc/testsuite/ada/acats/tests),
 retrieved 2026-10-21 (C49022A, C45523A and C45347A in `c4/`, the other

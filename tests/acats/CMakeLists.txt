@@ -4,8 +4,12 @@ target_link_libraries(acats_priority_probe PRIVATE adart)
 
 # Explicit selection and expectations: never silently discover new cases.
 function(add_acats_test name)
-    cmake_parse_arguments(ACATS "" "REJECTION;TEST_NAME;STDOUT" "SOURCES" ${ARGN})
+    cmake_parse_arguments(ACATS "NATIVE_LONG_DOUBLE" "REJECTION;TEST_NAME;STDOUT;SOURCE_SHA256" "SOURCES" ${ARGN})
     string(REPLACE ";" "|" sources "${ACATS_SOURCES}")
+    set(abi_option)
+    if(ACATS_NATIVE_LONG_DOUBLE)
+        set(abi_option -DNATIVE_LONG_DOUBLE_ABI_REPORT=$<TARGET_FILE:host_abi_report>)
+    endif()
     add_test(NAME acats.${name}
         COMMAND ${CMAKE_COMMAND}
             -DNAME=${name}
@@ -14,11 +18,16 @@ function(add_acats_test name)
             -DWORKDIR=${CMAKE_CURRENT_BINARY_DIR}/work
             -DREJECTION=${ACATS_REJECTION}
             -DSOURCE_LIST=${sources}
+            -DSOURCE_SHA256=${ACATS_SOURCE_SHA256}
             -DEXPECTED_TEST_NAME=${ACATS_TEST_NAME}
             -DEXPECTED_OUTPUT_FILE=${ACATS_STDOUT}
+            ${abi_option}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunAcats.cmake
     )
     set_tests_properties(acats.${name} PROPERTIES TIMEOUT 60 LABELS "acats")
+    if(ACATS_NATIVE_LONG_DOUBLE)
+        set_tests_properties(acats.${name} PROPERTIES SKIP_REGULAR_EXPRESSION "SKIP ${name}: binary64 C long double required")
+    endif()
 endfunction()
 
 # Three-bit enumeration storage with the unchanged official Length_Check unit.
@@ -38,6 +47,35 @@ add_acats_test(cxac005 SOURCES cxac005.a)
 add_acats_test(cxac006 SOURCES cxac006.a)
 add_acats_test(cxac008 SOURCES cxac008.a)
 add_acats_test(cxaa019 SOURCES cxaa019.a STDOUT stream_io/cxaa019.expected)
+# Unchanged Interfaces.C cases from tests/cxb at ACATS revision
+# 2785c30c1f8577d97ac7b3043882f6818781e9c5. See README.md for grades and gaps.
+add_acats_test(cxb3001 SOURCES cxb3001.a NATIVE_LONG_DOUBLE
+    SOURCE_SHA256 35656fbf92224df11adb06bec4491add51b08c54944caac91e5f399840507642)
+add_acats_test(cxb3002 SOURCES cxb3002.a
+    SOURCE_SHA256 0f4bce9c692e5a2ccbc91dbdb5c8f9f8ce2d63d902a2bebd2358438a23acb360)
+add_acats_test(cxb3003 SOURCES cxb3003.a
+    SOURCE_SHA256 3c0bab03ef2d62f151600a1ca0e5565d418bee5ce2e2a8b4522e65fe9a28c5df)
+add_acats_test(cxb3005 SOURCES cxb3005.a
+    SOURCE_SHA256 3cadd20477b7e4764bb4cdfb975e5f64669b3d524ad122f4a16cce29e4bfa106)
+add_acats_test(cxb3007 SOURCES cxb3007.a
+    SOURCE_SHA256 61e4b1d8bf636de1ca7220bec82f89a2df8578466bb9ac9439b320a8bd9ac9d8)
+add_acats_test(cxb3008 SOURCES cxb3008.a
+    SOURCE_SHA256 738d362a0a8668e1897c0e0d92371edfa08a29a965c9a0389608eb00272831f2)
+add_acats_test(cxb3009 SOURCES cxb3009.a
+    SOURCE_SHA256 a19ab48eeecfe0e0ccc24d2d0a8cb35a4e75763f87658573260b52c5afefec81)
+add_acats_test(cxb3010 SOURCES cxb3010.a
+    SOURCE_SHA256 f249b639117b6ddf96e520bdfedeaddf4746ce84f54908a5a6345a916cbe856e)
+add_acats_test(cxb3011 SOURCES cxb3011.a
+    SOURCE_SHA256 9844b725366eb7d2e850f687428ee3702ee6e0a307fb57b65dfababad4e4e106)
+add_acats_test(cxb3012 SOURCES cxb3012.a
+    SOURCE_SHA256 1bf99effb1ec2a00d76517b1b3c46a66ec5f779e5f44951efde9588d48afb26e)
+add_acats_test(cxb3014 SOURCES cxb3014.a
+    SOURCE_SHA256 8f52a6af1dc25341d1af1c20f3e132b7aaf2f979bacb6c500da3cfbdfa7a088d)
+add_acats_test(cxb3015 SOURCES cxb3015.a
+    SOURCE_SHA256 4db5b41608d43f211f2c094fe4095b95e64ffbb193171d8731efbab5d60d1e5e)
+add_acats_test(cxb3016 SOURCES cxb3016.a
+    SOURCE_SHA256 747d14b21c75397665651608dfc3b2300d67ba4707237f5b81742bf50ebbc5a6)
+
 add_acats_test(cd3014a)
 add_acats_test(cd3014d)
 add_acats_test(c354002)

@@ -661,6 +661,18 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                         m_context->stackAlignments[slot] = size <= 4 && typeAlignment(symbol->type) <= 4 ? 4 : 8;
                         m_context->prologue << "    " << slot << " =l " << (size <= 4 && typeAlignment(symbol->type) <= 4 ? "alloc4" : "alloc8") << " "
                                             << size << "\n";
+                        Type* type = symbol->type;
+                        if (object->initializer == nullptr && isScalar(type) && type->kind != TypeKind::Access
+                            && !needsZeroInit(type) && sharedSymbolKind(symbol) == 0) {
+                            // QBE may promote this slot to SSA. Seed the unspecified
+                            // initial value so early loads have a dominating definition.
+                            char storageClass = qbeClass(type);
+                            std::string initialValue = storageClass == 's' ? "s_0" : storageClass == 'd' ? "d_0" : "0";
+                            if (!type->enumCodes.empty()) {
+                                initialValue = std::to_string(type->enumCodes.front());
+                            }
+                            m_context->prologue << "    " << qbeStoreInstruction(type) << " " << initialValue << ", " << slot << "\n";
+                        }
                     }
                     m_context->locals[symbol] = slot;
                 }

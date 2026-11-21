@@ -3076,6 +3076,7 @@ set(interfaces_mode_arguments
     -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
     -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
     -DRUNTIME=$<TARGET_FILE:adart> -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+    -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
     -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
     -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/host/InterfacesAbi.c)
 add_test(NAME host.interfaces_scalar_types
@@ -3097,6 +3098,7 @@ add_test(NAME host.interfaces_native_calls
         -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
         -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
         -DRUNTIME=$<TARGET_FILE:adart> -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
         -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/host/NativeCAbi.c
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/interfaces/interfacesnative.adb
@@ -3138,6 +3140,7 @@ add_test(NAME host.c_scalar_widths
         -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
         -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
         -DRUNTIME=$<TARGET_FILE:adart> -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
         -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/host/ScalarAbi.c
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/numerics/cscalarwidth.adb

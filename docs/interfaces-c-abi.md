@@ -89,9 +89,8 @@ clang --target=x86_64-w64-windows-gnu -std=c11 -ffreestanding \
 
 Use `arm64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`,
 `aarch64-unknown-linux-gnu` and `x86_64-w64-windows-gnu` to reproduce the matrix.
-Linux, MSYS2 UCRT64 GCC and Darwin amd64 still need native runs of the expanded
-probe and future Ada/C call tests. The target compiles do not add a cross-build
-mode to `ada`.
+The [integration audit](#integration-audit) records native execution separately
+from target compilation. The driver continues to select its host ABI.
 
 ## Native long double policy
 
@@ -123,6 +122,46 @@ interop for those formats remain deferred. [QBE IL scalar types](../qbe/doc/il.t
 
 General `Export`, Ada-defined C callbacks, foreign objects, by-value records,
 variadics and C++ bindings remain separate roadmap follow-ups.
+
+## Integration audit
+
+The local Darwin arm64 run covers relocatable installation of the package
+hierarchy, source-free interface replay, deterministic IR, whole-program
+and per-unit Ada/C calls, and legality diagnostics. The unchanged ACATS
+selection checks all three C package interfaces, conversions, libc calls,
+string lifetime operations and native element pointers.
+[Independent grades and blocked ACATS cases](../tests/acats/README.md#phase-13-interfacesc-selection).
+
+The Release suite passed 2,247 of 2,248 checks on its first run. The remaining
+`ir.hello` check passed when rerun with the expected scalar initialization
+store in its golden IR. All 38 focused ASan/UBSan checks passed, including
+the thirteen ACATS cases and native C fixtures. Four TSan checks passed,
+covering the concurrent Ada tests and native ABI fixtures for strings and
+element pointers.
+
+| Target and native toolchain | Phase 13 audit execution |
+| --- | --- |
+| Darwin arm64, Apple Clang | Native ABI report, Ada/C calls, install and replay, and selected ACATS passed |
+| Darwin amd64, Apple Clang | Native run pending |
+| Linux amd64, system C compiler | Native run pending |
+| Linux arm64, system C compiler | Native run pending |
+| Windows amd64, MSYS2 UCRT64 GCC | Native run pending |
+
+The C layout probe, C pointer fixture and QBE output for its Ada caller also
+assembled to objects for all five targets. The Ada caller uses layouts common
+to these targets. This evidence covers code generation. Native runs exercise
+linking, runtime behavior and each host compiler's actual ABI.
+
+The current Build and Test workflow collects `revision.txt`, `abi.json` and
+JUnit `results.xml` on the two Linux runners and Windows amd64. Review these
+together for a Phase 13 revision, including each ABI, deterministic IR and
+installation check. Darwin amd64 requires a separate native run.
+[Native validation workflow](../.github/workflows/build-and-test.yml).
+
+The selected results leave explicit gaps for x87 extended and binary128
+`long_double`, named `Import` associations and nonliteral external names.
+General exports, unchecked unions and the other foreign profile extensions
+remain outside the implemented subset.
 
 ## Representation verification
 

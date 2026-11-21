@@ -75,6 +75,11 @@ following in dependency order:
   Confirm new ABI paths on native supported hosts, run the full suite and relevant
   sanitizers, and update coverage, inventory and feature contracts. Report any
   target/API gaps explicitly; passing a subset does not complete all of B.3.
+  - [x] Darwin arm64 audit, including 13 unchanged ACATS cases, the Release
+    suite, focused sanitizers, and the install, replay and ABI checks.
+    [Integration evidence and API gaps](docs/interfaces-c-abi.md#integration-audit).
+  - [ ] Collect native Phase 13 ABI reports and Ada/C execution results on
+    Darwin amd64, Linux amd64 and arm64, and Windows amd64 (MSYS2 UCRT64).
 
 General `Export`, Ada-defined C callbacks, imported/exported objects, by-value
 records/`C_Pass_By_Copy`, variadics and C++ bindings are separate follow-ups;

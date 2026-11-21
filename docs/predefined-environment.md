@@ -22,6 +22,8 @@ identified separately.
 `Interfaces.C` includes scalars and [character arrays and conversions](interfaces-c-abi.md#character-arrays-and-conversions).
 The two child packages supply native C string pointers and generic element
 pointers. [C strings](interfaces-c-abi.md#c-strings), [Element pointers](interfaces-c-abi.md#element-pointers).
+The installed hierarchy and source-free interface replay exercise this family
+of units. [Integration audit](interfaces-c-abi.md#integration-audit).
 
 [Ada.Storage_IO](storage-io.md) now supplies typed representation buffers and
 ordinary Read/Write procedures, including runtime-sized inline layouts and

@@ -96,6 +96,7 @@ export function $ada__text_io__get_line__2(l %p.file, l %p.item, l %p.item.first
     storel 0, %.t9
     storel 0, %.t10
     %v.count.18 =l alloc4 4
+    storew 0, %v.count.18
     %.trace =l alloc8 24
     %.traceLocation =l add %.trace, 16
     %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada_text_io.str.12, l $.ada_text_io.str.5)
