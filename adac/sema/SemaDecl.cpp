@@ -1387,6 +1387,23 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
         return;
     }
     if (decl->lower == "convention") {
+        if (decl->conventionIntrinsic) {
+            std::vector<Symbol*> subprograms;
+            for (Symbol* candidate : candidates) {
+                if (candidate->kind == SymbolKind::Subprogram && !candidate->entry) {
+                    subprograms.push_back(candidate);
+                }
+            }
+            if (subprograms.empty() || std::any_of(subprograms.begin(), subprograms.end(), [&](const Symbol* subprogram) {
+                    return subprogram->addressTaken || m_frozenEntities.contains(subprogram)
+                        || subprogram->builtin != BuiltinKind::None || subprogram->intrinsicRenaming;
+                })) {
+                m_diagnostics.error(decl->location, "Intrinsic Convention requires a local subprogram and must precede freezing");
+                return;
+            }
+            for (Symbol* subprogram : subprograms) { subprogram->intrinsicRenaming = true; }
+            return;
+        }
         Symbol* entity = candidates.size() == 1 ? candidates.front() : nullptr;
         Type* type = entity != nullptr && entity->kind == SymbolKind::TypeName ? entity->type : nullptr;
         bool callback = type != nullptr && type->accessProfile != nullptr && !type->anonymousAccess;

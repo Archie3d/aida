@@ -4,7 +4,7 @@ Phase 13 targets the Ada 2005 packages `Interfaces`, `Interfaces.C`,
 `Interfaces.C.Strings` and `Interfaces.C.Pointers`. The existing
 [C Import and callback subset](subprogram-access.md) provides the starting
 point. `Interfaces`, the scalar and character-array APIs of `Interfaces.C`,
-and `Interfaces.C.Strings` are available.
+`Interfaces.C.Strings` and `Interfaces.C.Pointers` are available.
 [Ada 2005 RM B.2](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-2.html),
 [B.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3.html),
 [B.3.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3-1.html),
@@ -234,10 +234,10 @@ Native scalars use their C register and storage classes. Ordinary enumeration
 values and results use word-sized C codes. Writable scalar and pointer formals
 pass addresses of temporaries with the formal's storage width and checked
 copy-back on normal return. Fixed-layout untagged records with naturally laid-out
-scalar fields can also be passed by reference. Named
-access-to-object values and anonymous object access parameters can designate
-compatible scalar storage. Named C access-to-subprogram values and
-`System.Address` also cross the boundary as native pointers. Ada's null
+scalar fields can also be passed by reference. Named access-to-object values
+and anonymous object access parameters can designate compatible scalars,
+fixed-layout records and native pointer elements. Named C access-to-subprogram
+values and `System.Address` also cross the boundary as native pointers. Ada's null
 exclusions still apply. Memory reached through a returned pointer stays under
 its original ownership. [Ada 2005 RM B.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3.html).
 
@@ -245,7 +245,7 @@ its original ownership. [Ada 2005 RM B.3](https://www.adaic.org/resources/add_co
 object access type and can select the native calling convention for a named
 callback type. Unsupported profiles, including packed or multidimensional
 array parameters, tagged record parameters, composite and anonymous access
-results, pointers to composites, and Ada closure parameters, are diagnosed
+results, pointers to array objects, and Ada closure parameters, are diagnosed
 before code generation.
 Imports of reserved `__ada_` symbols use the compiler-runtime profiles.
 
@@ -305,3 +305,45 @@ On Darwin arm64, all 2,229 Release checks and 14 focused ASan/UBSan checks
 passed. The four-worker test passed with a ThreadSanitizer-instrumented C
 runtime. An ASan shadow-memory check confirmed that `Free` released the C
 allocation.
+
+## Element pointers
+
+`Interfaces.C.Pointers` is a preelaborated generic over a discrete index, a
+definite element type, its aliased one-dimensional array type, and a default
+terminator. For compatible element layouts, `Pointer` is a thin native
+`Element *`. Take `'Access` of an aliased array element to borrow its address.
+Pointer arithmetic scales offsets by the full element storage size, including
+padding. Subtraction returns a signed distance in elements. The arithmetic
+operations, `Increment` and `Decrement` are intrinsic and raise
+`Pointer_Error` on null operands. [Ada 2005 RM B.3.2](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3-2.html).
+
+`Virtual_Length` counts elements before the first terminator. Terminated
+`Value` includes that element, and counted `Value` copies exactly the requested
+number of elements. Nonempty results start at `Index'First`. The result must
+fit the instantiated index subtype. A nonpositive count returns an empty
+array when the base index type can represent a null range.
+
+`Copy_Terminated_Array` stops after copying the terminator or reaching
+`Limit`, whichever comes first. `Copy_Array` copies the requested number of
+elements. The copies use Ada element assignment and support overlapping
+source and target ranges. A nonpositive count or limit writes nothing.
+`Value`, `Virtual_Length` and both copy procedures raise
+`Interfaces.C.Strings.Dereference_Error` for null pointers.
+
+The caller supplies the lifetime and extent of the underlying storage.
+Arithmetic and differences require positions in the same array, including
+the one-past position for arithmetic. Dereferencing requires a live aliased
+element. Use a valid terminator or a readable extent large enough for the
+count or limit, and reserve enough writable elements at the destination.
+Ownership stays with the original Ada or foreign allocator.
+
+The Ada and native C fixtures cover 1-, 2-, 8- and 16-byte strides, high
+modular and negative signed index origins, enumeration indices, native
+`char **` vectors, overlap, bounded copies, null operands and intrinsic
+legality. Separate compilation and source-free replay instantiate the
+predefined generic with its original contract.
+
+On Darwin arm64, all 2,235 Release checks and 14 focused ASan/UBSan checks
+passed. A native guard-page probe verified counted reads and limited copies
+at the end of readable storage. The Ada fixture and C helper compiled to
+objects for all five target configurations.

@@ -41,6 +41,22 @@ bool nativeCRecord(Type* type)
         });
 }
 
+bool nativeCDesignated(Type* type, Type* addressType)
+{
+    std::unordered_set<Type*> seen;
+    while (type != nullptr && type->kind == TypeKind::Access && !type->isIncomplete) {
+        if (!seen.insert(type).second || type->anonymousAccess || sharedTypeKind(type) != 0
+            || typeSize(type) != kCAbiTarget.pointerBytes || typeAlignment(type) != kCAbiTarget.pointerAlignment) {
+            return false;
+        }
+        if (rootType(type) == addressType) { return true; }
+        if (type->accessProfile != nullptr) { return type->accessConventionC; }
+        type = type->target;
+    }
+    return type != nullptr && !type->isIncomplete
+        && (nativeCObjectTarget(type) || (type->kind == TypeKind::Record && nativeCRecord(type)));
+}
+
 } // namespace
 
 bool Sema::supportsNativeCResult(Type* type)
@@ -50,7 +66,7 @@ bool Sema::supportsNativeCResult(Type* type)
     if (type->kind != TypeKind::Access) { return nativeCScalar(type); }
     if (type->anonymousAccess) { return false; }
     if (type->accessProfile != nullptr) { return type->accessConventionC; }
-    return nativeCObjectTarget(type->target);
+    return nativeCDesignated(type->target, m_addressType);
 }
 
 bool Sema::supportsNativeCArray(Type* type)
@@ -77,7 +93,7 @@ bool Sema::supportsNativeCParameter(const Symbol* parameter)
     if (type->kind == TypeKind::Record) { return nativeCRecord(type); }
     if (type->kind == TypeKind::Access && type->anonymousAccess) {
         return parameter->mode == ParameterMode::In && type->accessParameter
-            && type->accessProfile == nullptr && nativeCObjectTarget(type->target);
+            && type->accessProfile == nullptr && nativeCDesignated(type->target, m_addressType);
     }
     return supportsNativeCResult(type);
 }

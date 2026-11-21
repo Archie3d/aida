@@ -1,0 +1,4 @@
+interfacescpointererrors.adb:8:40: error: 'Access of intrinsic subprograms is not allowed
+interfacescpointererrors.adb:9:35: error: 'Access of intrinsic subprograms is not allowed
+interfacescpointererrors.adb:11:67: error: actual array does not match generic formal 'Element_Array'
+interfacescpointererrors.adb:11:5: note: in instantiation of 'C.Pointers' here

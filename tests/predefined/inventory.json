@@ -740,6 +740,13 @@
       "status": "resolves"
     },
     {
+      "name": "interfaces.c.pointers",
+      "source": "runtime/ada/interfaces/c/pointers.ads",
+      "scope": "annex_subset",
+      "rm": "B.3.2",
+      "status": "resolves"
+    },
+    {
       "name": "standard",
       "source": "compiler builtin",
       "scope": "core",

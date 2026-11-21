@@ -62,12 +62,13 @@ following in dependency order:
   allocator/lifetime obligations. Cover required exceptions, allocation failure,
   bounded reads/updates and cleanup, with sanitizer and concurrent-call controls.
   [C string contract](docs/interfaces-c-abi.md#c-strings).
-- [ ] **Interfaces.C.Pointers.** Implement generic native element pointers,
+- [x] **Interfaces.C.Pointers.** Implement generic native element pointers,
   stride-aware arithmetic/difference, terminated and counted values/copies.
   Preserve generic contracts and aliased storage; test null-pointer exceptions,
   element sizes, nonzero index origins, terminators and copy limits. Document
   caller obligations and erroneous-execution boundaries without promising bounds
   checks that native pointers cannot provide.
+  [Element pointer contract](docs/interfaces-c-abi.md#element-pointers).
 - [ ] **Integration and completion audit.** Add focused Ada/C examples,
   legality, determinism, installation and separate-unit checks throughout these
   steps; select relevant unchanged ACATS tests and grade them independently.

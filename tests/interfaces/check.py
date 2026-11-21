@@ -111,10 +111,14 @@ package Other_Extras is N : constant Integer := 1; end Other_Extras;''')
     write(source, '''with Ada.Text_IO; with Model; with Model.Child; with Tools;
 with Alias; with Helper; with Extras; with Other_Extras; with Consumer; with Split; with Decl_View; with Index_Name;
 with Interfaces.C;
+with Interfaces.C.Pointers;
 with Interfaces.C.Strings;
 procedure Client is
+    package C renames Interfaces.C;
+    package Pointers is new C.Pointers (C.size_t, C.char, C.char_array, C.nul);
     package Strings renames Interfaces.C.Strings;
     use type Interfaces.C.size_t;
+    use type C.ptrdiff_t;
     package Instance is new Tools (Model.Item);
     X : Model.Item := Instance.Identity (Model.Make);
     T : Model.Tagged_Item := (N => 4);
@@ -132,6 +136,7 @@ begin
         or else Text /= "source-free"
         or else Model.Measure (C_Text) /= 11 or else Measure (C_Text) /= 11
         or else Model.Measure_Pointer (C_Pointer) /= 11
+        or else Pointers.Virtual_Length (C_Text (0)'Access) /= 11
         or else Strings.Value (C_Pointer) /= Text then
         raise Program_Error;
     end if;
@@ -176,7 +181,7 @@ end Client;''')
     command = [args.ada, '--no-stdlib', '-v', '-D', client_objects, '-o', target, source]
     built = run(command, environment)
     run([target], environment, expected='source-free\n')
-    for unit in ('model', 'interfaces', 'interfaces-c', 'interfaces-c-strings'):
+    for unit in ('model', 'interfaces', 'interfaces-c', 'interfaces-c-strings', 'interfaces-c-pointers'):
         if f'{unit} uses a compiled semantic interface' not in built.stderr:
             raise RuntimeError(f'driver did not reuse the compiled semantic interface for {unit}')
     # This client has a full private representation, default expressions,

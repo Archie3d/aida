@@ -64,8 +64,9 @@ def main():
                 raise RuntimeError('installed runtime contains a stale flat Text_IO copy')
         interfaces_c = library / 'interfaces/c.ads'
         c_strings = library / 'interfaces/c/strings.ads'
+        c_pointers = library / 'interfaces/c/pointers.ads'
         interface_sources = (library / 'interfaces.ads', interfaces_c, interfaces_c.with_suffix('.adb'),
-                             c_strings, c_strings.with_suffix('.adb'))
+                             c_strings, c_strings.with_suffix('.adb'), c_pointers, c_pointers.with_suffix('.adb'))
         if not all(path.is_file() for path in interface_sources):
             raise RuntimeError('installed runtime hierarchy is missing Interfaces family sources')
         interfaces_c.write_text(interfaces_c.read_text().replace('end Interfaces.C;',
@@ -79,18 +80,23 @@ def main():
         main_source.write_text('''with Ada.Text_IO;
 with Interfaces;
 with Interfaces.C;
+with Interfaces.C.Pointers;
 with Interfaces.C.Strings;
 with System;
 with Helper;
 procedure Probe is
     package Strings renames Interfaces.C.Strings;
+    package C renames Interfaces.C;
+    package Pointers is new C.Pointers (C.size_t, C.char, C.char_array, C.nul);
     use type Interfaces.C.size_t;
+    use type C.ptrdiff_t;
     use type Strings.chars_ptr;
     C_Text : Interfaces.C.char_array := Interfaces.C.To_C (String'("installed"));
     Text : String := Interfaces.C.To_Ada (C_Text);
     Copy : Strings.chars_ptr := Strings.New_Char_Array (C_Text);
 begin
-    if Helper.Value /= 9 or else Text /= "installed" or else Strings.Value (Copy) /= Text then
+    if Helper.Value /= 9 or else Text /= "installed" or else Strings.Value (Copy) /= Text
+        or else Pointers.Virtual_Length (C_Text (0)'Access) /= 9 then
         raise Program_Error;
     end if;
     Strings.Free (Copy);

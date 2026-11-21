@@ -1413,7 +1413,7 @@ add_ada_error_test(taskidentityerrors SOURCES tasks/taskidentityerrors.adb)
 
 # Numeric and array boundaries in whole/separate compilation, deterministic
 # IR, and several independent Ada task contexts.
-foreach(boundary_case realedges realtasking floatattributes floatattributetasking realvalue realvaluetasking derivedscalaroperations arraydescriptors arraydescriptortasking concatenation concattasking unsignedarraybounds interfacescharacters interfacescstrings)
+foreach(boundary_case realedges realtasking floatattributes floatattributetasking realvalue realvaluetasking derivedscalaroperations arraydescriptors arraydescriptortasking concatenation concattasking unsignedarraybounds interfacescharacters interfacescstrings interfacescpointers)
     add_ada_test(${boundary_case} SOURCES ${boundary_case}.adb)
     add_determinism_test(${boundary_case} SOURCE ${boundary_case}.adb)
     ada_test_fixture(source_path "${boundary_case}.adb")
@@ -3068,6 +3068,8 @@ add_determinism_test(interfacesscalars SOURCE interfaces/interfacesscalars.adb)
 add_ada_error_test(interfacesscalarerrors SOURCES interfaces/interfacesscalarerrors.adb)
 add_determinism_test(interfacesnative SOURCE interfaces/interfacesnative.adb)
 add_determinism_test(interfacescstringsabi SOURCE interfaces/interfacescstringsabi.adb)
+add_determinism_test(interfacescpointersabi SOURCE interfaces/interfacescpointersabi.adb)
+add_ada_error_test(interfacescpointererrors SOURCES interfaces/interfacescpointererrors.adb)
 add_ada_error_test(interfacesnativeimporterrors SOURCES interfaces/interfacesnativeimporterrors.adb)
 add_ada_error_test(interfacesnativecallbackerrors SOURCES interfaces/interfacesnativecallbackerrors.adb)
 set(interfaces_mode_arguments
@@ -3113,9 +3115,22 @@ add_test(NAME host.interfaces_c_strings_abi
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/interfaces/interfacescstringsabi.expected
         "-DWORKDIR=${ADA_TEST_WORK_DIR}/Interfaces C strings ABI"
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+add_test(NAME host.interfaces_c_pointers_abi
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/host/CPointersAbi.c
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/interfaces/interfacescpointersabi.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/interfaces/interfacescpointersabi.expected
+        "-DWORKDIR=${ADA_TEST_WORK_DIR}/Interfaces C pointers ABI"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(host.interfaces_scalar_types host.interfaces_long_double determinism.interfacesscalars
     host.interfaces_native_calls determinism.interfacesnative
     host.interfaces_c_strings_abi determinism.interfacescstringsabi
+    host.interfaces_c_pointers_abi determinism.interfacescpointersabi
     PROPERTIES TIMEOUT 60 LABELS "host")
 add_determinism_test(cscalarwidth SOURCE numerics/cscalarwidth.adb)
 add_test(NAME host.c_scalar_widths
