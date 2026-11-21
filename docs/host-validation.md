@@ -1,5 +1,9 @@
 # Host and target validation
 
+Phase 13 passed native validation on Darwin arm64, Linux amd64 and arm64,
+and Windows amd64 with MSYS2 UCRT64.
+[Phase 13 integration audit](interfaces-c-abi.md#integration-audit).
+
 For the Phase 12 CXDA003 increment, the user confirms that CI builds and tests
 pass on all configured platforms. Local Darwin arm64 validation passed all
 2,197 Release checks (314 ACATS) and 36 focused ASan/UBSan checks.
@@ -52,9 +56,8 @@ checks also pass.
 
 ## Native matrix
 
-macOS validation is performed locally rather than in GitHub Actions. Darwin
-arm64 has the native evidence above; Darwin amd64 remains unvalidated and
-requires a separate manual run if that target is needed.
+Darwin validation runs locally on Apple silicon. The project has retired
+Darwin amd64 from its supported host matrix.
 
 The [workflow](../.github/workflows/build-and-test.yml) runs Linux and MSYS2 jobs,
 checks out into a spaced source path, builds Release into a spaced build path and runs the complete
@@ -65,7 +68,6 @@ was introduced. Installation and ABI checks belong to the normal CTest suite.
 | --- | --- | --- |
 | Linux amd64 | ubuntu-24.04, lib64 | Native CI: 1,953/1,953 PASS |
 | Linux arm64 | ubuntu-24.04-arm, lib | Native CI: 1,953/1,953 PASS |
-| Darwin amd64 | Manual validation | Unvalidated; no CI job |
 | Darwin arm64 | Local development, lib/lib64 | Local native pass; no CI job |
 | Windows amd64 | windows-2025, MSYS2 UCRT64/GCC, lib | Native CI: 1,952/1,952 PASS; all eight fixes confirmed |
 

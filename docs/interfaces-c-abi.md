@@ -12,7 +12,7 @@ point. `Interfaces`, the scalar and character-array APIs of `Interfaces.C`,
 
 ## Target C data layouts
 
-Each `size/align` entry gives `sizeof` and `_Alignof` in C bytes. All five
+Each `size/align` entry gives `sizeof` and `_Alignof` in C bytes. All supported
 targets use 8-bit bytes and little-endian storage. `SCHAR_MIN`, `SCHAR_MAX` and
 `UCHAR_MAX` are −128, 127 and 255 on each.
 
@@ -33,12 +33,11 @@ targets use 8-bit bytes and little-endian storage. `SCHAR_MIN`, `SCHAR_MAX` and
 | Target | C data model | `long` and `unsigned long` size/align | Plain `char` | `wchar_t` size/align, signedness | `long double` size/align, format | Probe evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | Darwin arm64 | LP64 | 8/8 | Signed | 4/4, signed | 8/8, binary64 | Native Apple Clang and target compile |
-| Darwin amd64 | LP64 | 8/8 | Signed | 4/4, signed | 16/16, x87 extended | Target compile only |
-| Linux amd64 | LP64 | 8/8 | Signed | 4/4, signed | 16/16, x87 extended | Target compile only |
-| Linux arm64 | LP64 | 8/8 | Unsigned | 4/4, unsigned | 16/16, binary128 | Target compile only |
-| Windows amd64, GNU ABI | LLP64 | 4/4 | Signed | 2/2, unsigned | 16/16, x87 extended | Target compile only |
+| Linux amd64 | LP64 | 8/8 | Signed | 4/4, signed | 16/16, x87 extended | Native GCC and target compile |
+| Linux arm64 | LP64 | 8/8 | Unsigned | 4/4, unsigned | 16/16, binary128 | Native GCC and target compile |
+| Windows amd64, GNU ABI | LLP64 | 4/4 | Signed | 2/2, unsigned | 16/16, x87 extended | Native UCRT64 GCC and target compile |
 
-`long` is signed and `unsigned long` is unsigned on all five targets. Their
+`long` is signed and `unsigned long` is unsigned on all supported targets. Their
 sizes follow the C data model independently of Ada `Long_Integer`. `plain_char`
 selects the signed or unsigned character subtype according to the plain C `char`
 column. C integer signedness governs layout and call handling independently of
@@ -75,11 +74,12 @@ cmake --build build --target host_abi_report
 ctest --test-dir build -R '^host\.abi_layout$' --verbose
 ```
 
-The table was checked with Apple Clang 21.0.0. Darwin arm64 was executed
-natively. Clang also generated objects and LLVM IR using each of the five
-explicit target triples. This measures C compiler layouts at compile time
-without a target sysroot or target execution. The `char16_t` and `char32_t`
-entries use their C11 underlying typedefs, `uint_least16_t` and `uint_least32_t`.
+Apple Clang 21.0.0 checked the table and ran the probe natively on Darwin arm64.
+The Linux and Windows CI probes confirmed their rows with GCC. Clang also
+generated objects and LLVM IR for each supported target. This measures C
+compiler layouts at compile time without a target sysroot or target execution.
+The `char16_t` and `char32_t` entries use their C11 underlying typedefs,
+`uint_least16_t` and `uint_least32_t`.
 The following command shows the Windows GNU facts.
 
 ```sh
@@ -87,7 +87,7 @@ clang --target=x86_64-w64-windows-gnu -std=c11 -ffreestanding \
     -S -emit-llvm common/CAbiFacts.c -o - | rg '^@kCAbi(Target|Integers|Floats) ='
 ```
 
-Use `arm64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`,
+Use `arm64-apple-darwin`, `x86_64-unknown-linux-gnu`,
 `aarch64-unknown-linux-gnu` and `x86_64-w64-windows-gnu` to reproduce the matrix.
 The [integration audit](#integration-audit) records native execution separately
 from target compilation. The driver continues to select its host ABI.
@@ -139,24 +139,28 @@ the thirteen ACATS cases and native C fixtures. Four TSan checks passed,
 covering the concurrent Ada tests and native ABI fixtures for strings and
 element pointers.
 
-| Target and native toolchain | Phase 13 audit execution |
-| --- | --- |
-| Darwin arm64, Apple Clang | Native ABI report, Ada/C calls, install and replay, and selected ACATS passed |
-| Darwin amd64, Apple Clang | Native run pending |
-| Linux amd64, system C compiler | Native run pending |
-| Linux arm64, system C compiler | Native run pending |
-| Windows amd64, MSYS2 UCRT64 GCC | Native run pending |
+| Target and native toolchain | Release passes | Skips | CI artifact |
+| --- | ---: | ---: | --- |
+| Darwin arm64, Apple Clang | 2,248 | 0 | Local run |
+| Linux amd64, GCC | 2,242 | 6 | `host-ubuntu-24-amd64` |
+| Linux arm64, GCC | 2,242 | 6 | `host-ubuntu-24-arm` |
+| Windows amd64, MSYS2 UCRT64 GCC | 2,241 | 1 | `host-windows-ucrt64` |
+
+The three CI artifacts from 2026-11-21 identify revision
+`cac5298fc425beb0b70d7c7346c31f1bfea6cb8e` in `host evidence/revision.txt`.
+The native `host evidence/abi.json` reports agree with the target layout table.
+Each `results.xml` records zero failures and passes for the Ada/C ABI tests,
+deterministic IR, install relocation and source-free replay. Each CI host
+passed twelve selected ACATS cases. All three skipped CXB3001 because their
+C `long double` uses x87 extended or binary128, and passed the format-specific
+rejection check in `host.interfaces_long_double`. The five additional skips
+on each Linux runner were native task-priority checks.
+[Native validation workflow](../.github/workflows/build-and-test.yml).
 
 The C layout probe, C pointer fixture and QBE output for its Ada caller also
-assembled to objects for all five targets. The Ada caller uses layouts common
-to these targets. This evidence covers code generation. Native runs exercise
-linking, runtime behavior and each host compiler's actual ABI.
-
-The current Build and Test workflow collects `revision.txt`, `abi.json` and
-JUnit `results.xml` on the two Linux runners and Windows amd64. Review these
-together for a Phase 13 revision, including each ABI, deterministic IR and
-installation check. Darwin amd64 requires a separate native run.
-[Native validation workflow](../.github/workflows/build-and-test.yml).
+assembled to objects for the four supported targets and legacy Darwin amd64.
+The Ada caller uses layouts common to these targets. Native runs cover linking,
+runtime behavior and each supported host compiler's actual ABI.
 
 The selected results leave explicit gaps for x87 extended and binary128
 `long_double`, named `Import` associations and nonliteral external names.
@@ -178,10 +182,10 @@ array conversions and checked count and byte-size overflow. The stream tests
 verify that bounds cross the stream as unsigned Ada values. The tests cover
 whole and per-unit builds and deterministic IR where applicable.
 
-Both control programs run natively on Darwin arm64. The scalar fixture's
-generated Ada assembly and C helper also compile to objects for the five
-target ABIs in the matrix. Native execution on the other targets is part of
-the phase's integration checks.
+Both control programs ran natively on Darwin arm64 during this increment.
+The scalar fixture's generated Ada assembly and C helper also compiled to
+objects for every supported target and legacy Darwin amd64.
+[Native results](#integration-audit).
 
 The representation increment's Darwin arm64 Release campaign covered 2,213 checks. Three container
 compiles reached the harness deadlines during the parallel run and passed
@@ -216,10 +220,10 @@ on unsupported targets.
 Darwin arm64 passed all 2,217 Release checks across the full run and reruns
 of the renamed tagged-interface fixture. The final focused Release run passed
 16 checks, and 10 focused ASan/UBSan checks passed. The C facts, shift runtime
-and Ada/C scalar fixture cross-assembled for all five targets. Simulated LLP64
-and Linux arm64 facts exercised the alternate scalar layouts and the x87 and
-binary128 diagnostics, including through limited views. Native execution on
-the other four targets remains an integration check.
+and Ada/C scalar fixture cross-assembled for the supported targets and legacy
+Darwin amd64. Simulated LLP64 and Linux arm64 facts exercised the alternate
+scalar layouts and the x87 and binary128 diagnostics, including through
+limited views. [Native results](#integration-audit).
 
 ## Character arrays and conversions
 
@@ -294,9 +298,10 @@ slice writes and indirect calls. The source-free interface fixture calls
 `strlen` both directly and through a C callback after replaying the checked
 package interface. The libc fixtures use `Interfaces.C.int` and
 `Interfaces.C.size_t` for C integer parameters, results and byte counts.
-The Ada fixture and C helper compile to objects for the five
-target configurations in the matrix, using simulated target facts for
-Windows LLP64 and Linux arm64. Runtime execution was verified on Darwin arm64.
+The Ada fixture and C helper compiled to objects for every supported target
+and legacy Darwin amd64, using simulated target facts for Windows LLP64 and
+Linux arm64. Native execution on all supported targets is recorded in the
+[integration audit](#integration-audit).
 
 The 2,224-test Release run found three regressions in the enumeration and
 record layout fixtures. All three passed in the final 116-test Release sweep.
@@ -385,4 +390,4 @@ predefined generic with its original contract.
 On Darwin arm64, all 2,235 Release checks and 14 focused ASan/UBSan checks
 passed. A native guard-page probe verified counted reads and limited copies
 at the end of readable storage. The Ada fixture and C helper compiled to
-objects for all five target configurations.
+objects for every supported target and legacy Darwin amd64.

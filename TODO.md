@@ -1,8 +1,8 @@
 # Compiler roadmap
 
-Phases 1–12 are complete for AIDA’s documented Ada 2005 subset, including core
-tasking. Phase 13 adds C interfacing packages; Phase 14 retains deferred
-host/performance work. Additional Specialized Needs Annex facilities and profiles
+Phases 1–13 are complete for AIDA’s documented Ada 2005 subset, including core
+tasking and C interfacing packages. Phase 14 retains deferred host and
+performance work. Additional Specialized Needs Annex facilities and profiles
 have [separate goals](docs/selected-annex-followups.md).
 
 ## Phase 13 - Interfaces.C support
@@ -69,7 +69,7 @@ following in dependency order:
   caller obligations and erroneous-execution boundaries without promising bounds
   checks that native pointers cannot provide.
   [Element pointer contract](docs/interfaces-c-abi.md#element-pointers).
-- [ ] **Integration and completion audit.** Add focused Ada/C examples,
+- [x] **Integration and completion audit.** Add focused Ada/C examples,
   legality, determinism, installation and separate-unit checks throughout these
   steps; select relevant unchanged ACATS tests and grade them independently.
   Confirm new ABI paths on native supported hosts, run the full suite and relevant
@@ -78,8 +78,8 @@ following in dependency order:
   - [x] Darwin arm64 audit, including 13 unchanged ACATS cases, the Release
     suite, focused sanitizers, and the install, replay and ABI checks.
     [Integration evidence and API gaps](docs/interfaces-c-abi.md#integration-audit).
-  - [ ] Collect native Phase 13 ABI reports and Ada/C execution results on
-    Darwin amd64, Linux amd64 and arm64, and Windows amd64 (MSYS2 UCRT64).
+  - [x] Verify native Phase 13 ABI reports and Ada/C execution on Linux amd64
+    and arm64 and Windows amd64 (MSYS2 UCRT64).
 
 General `Export`, Ada-defined C callbacks, imported/exported objects, by-value
 records/`C_Pass_By_Copy`, variadics and C++ bindings are separate follow-ups;
@@ -90,7 +90,7 @@ host/performance backlog does not replace this phase's native ABI validation.
 
 - [ ] **Supported-host/target follow-up.** Confirm subsequent increments on
   native hosts; retain ABI, relocation, library lookup and spaced-path controls.
-  Darwin amd64 remains unvalidated. [Host contract and evidence](docs/host-validation.md).
+  [Host contract and evidence](docs/host-validation.md).
 - [ ] **Performance follow-up.** Collect matched production measurements for
   the latest offset/copy changes, perform native milestone checks and revisit
   the historical no-slowdown goal. Continue local functional work; profiling

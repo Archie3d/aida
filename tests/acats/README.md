@@ -36,8 +36,10 @@ byte-for-byte copies from the pinned [ACATS `tests/cxb` directory](https://githu
 | CXB3015 | Element-stride pointer arithmetic and differences | PASS |
 | CXB3016 | Virtual length and pointer copies | PASS |
 
-CXB3001 declares `C.long_double` unconditionally. The local suite records a
-skip when the native C ABI report says Aida cannot represent that format.
+Linux amd64, Linux arm64 and Windows amd64 CI each passed the same twelve
+cases and skipped CXB3001. CXB3001 declares `C.long_double` unconditionally.
+The suite records a skip when the native C ABI report says Aida cannot
+represent that format.
 The test's upstream applicability criteria still apply to implementations
 providing `Interfaces.C`. `host.interfaces_long_double` separately verifies
 the target-specific rejection on these hosts.

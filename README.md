@@ -12,7 +12,7 @@ full Ada implementation.
 Requirements: CMake 3.20 or newer, a C++23 compiler, a C11 compiler, and `make`
 (used to build QBE).
 
-macOS and Linux:
+Build with CMake on macOS (Apple silicon) or Linux (amd64 or arm64).
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -20,12 +20,12 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-Windows: use an MSYS2 UCRT64 shell with MinGW-w64 GCC, make, and CMake installed.
+On Windows amd64, use an MSYS2 UCRT64 shell with MinGW-w64 GCC, make, and CMake installed.
 
 The compiler produces programs for the build host/toolchain; cross-compilation
 is not currently exposed as a supported driver option. To install, run
 `cmake --install build --prefix <prefix>`, then put `<prefix>/bin` on `PATH`.
-[Host validation](docs/host-validation.md) records tested layouts and pending native runs.
+[Host validation](docs/host-validation.md) records native test results and ABI layouts.
 
 ## Use example
 
@@ -142,7 +142,9 @@ Supported:
 - Named and anonymous object access, access-to-constant, accessibility checks,
   nested/protected callbacks and coextensions ([limits](docs/anonymous-access.md));
   object [`Unchecked_Access`](docs/unchecked-access.md)
-- Imported Ada/C and inherited tagged callbacks ([limits](docs/subprogram-access.md))
+- Imported Ada/C and inherited tagged callbacks ([limits](docs/subprogram-access.md));
+  `Interfaces`, `Interfaces.C`, `Interfaces.C.Strings` and `Interfaces.C.Pointers`
+  ([C ABI and package limits](docs/interfaces-c-abi.md))
 - Null exclusions with checked initialization, calls and conversions
   ([limits](docs/null-exclusions.md))
 - Primitive inheritance, overriding checks, operator visibility and dispatch through private overrides ([operators](docs/operator-visibility.md))
@@ -181,19 +183,25 @@ Supported:
 Task/protected discriminants, bound operation views and named protected callbacks
 are supported ([contract](docs/concurrent-callable-views.md)), along with
 [synchronized, task and protected interfaces](docs/concurrent-interfaces.md).
+Limited tagged records can contain [task and protected components](docs/tagged-concurrent-components.md).
 
-Not supported yet:
+**Selected limitations**
 
-- Tagged and variant records containing task or protected objects
-- Controlled/task/protected elements in discriminant-dependent arrays
-- Runtime-sized tagged records, tagged dependent components and delayed private-component layouts
-- Task/protected subunits and formal packages
-- Writable untagged scalar/record conversions and new derived discriminant parts
-- Derivation before a private view is completed
-- General C callback exports
-- Many representation clauses and pragmas
-- General unchecked conversion; remaining storage-pool representation limits
-  are [documented](docs/storage-pools.md)
+- Variant records containing task or protected objects, untagged derivation
+  of types containing them, and discriminant-dependent arrays with task or
+  protected elements ([concurrent component limits](docs/tagged-concurrent-components.md))
+- Task and protected body subunits ([subunit limits](docs/subunits.md))
+- Untagged non-array conversions as `out` or `in out` actuals, new discriminants
+  on untagged derivations, and derivation from uncompleted untagged private views
+  ([type and view limits](docs/tagged-discriminants.md))
+- `pragma Export`, Ada-defined C callbacks, imported objects, by-value C
+  records, variadic imports and C `long double` formats beyond binary64
+  ([C ABI limits](docs/interfaces-c-abi.md#integration-audit))
+- `Bit_Order` clauses, positive access-type `Storage_Size` clauses and
+  `pragma Restrictions` ([representation](docs/representation-clauses.md),
+  [storage pools](docs/storage-pools.md), [pragmas](docs/pragmas-and-checks.md))
+- `Ada.Unchecked_Conversion` is limited to discrete scalars and packed Boolean
+  arrays ([conversion rules](docs/packed-arrays.md#unchecked_conversion))
 
 Access-type collections support allocation and deallocation across tasks, with
 master-based lifetime and finalization ([contract](docs/shared-collections.md)).
