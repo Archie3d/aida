@@ -56,11 +56,12 @@ following in dependency order:
   scalar, pointer and array calls against C helpers in whole/per-unit builds;
   diagnose unsupported profiles before emission.
   [Native call contract](docs/interfaces-c-abi.md#native-c-calls).
-- [ ] **Interfaces.C.Strings.** Implement native `chars_ptr`, null/default
+- [x] **Interfaces.C.Strings.** Implement native `chars_ptr`, null/default
   initialization, borrowed array views, allocation/free, length/value and update
   operations. Distinguish borrowed and owned storage and document foreign
   allocator/lifetime obligations. Cover required exceptions, allocation failure,
   bounded reads/updates and cleanup, with sanitizer and concurrent-call controls.
+  [C string contract](docs/interfaces-c-abi.md#c-strings).
 - [ ] **Interfaces.C.Pointers.** Implement generic native element pointers,
   stride-aware arithmetic/difference, terminated and counted values/copies.
   Preserve generic contracts and aliased storage; test null-pointer exceptions,

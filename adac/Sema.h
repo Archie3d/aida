@@ -97,6 +97,7 @@ private:
     void analyzeInterfacesIntrinsic(PragmaDecl* decl, Scope* scope, Symbol* target);
     bool supportsNativeCParameter(const Symbol* parameter);
     bool supportsNativeCResult(Type* type);
+    bool supportsNativeCArray(Type* type);
     bool supportsNativeCStorage(Type* type);
     Type* interfacesCTargetType(const std::string& lower, Scope* scope, const SourceLocation& location);
     bool declareUnavailableLongDouble(TypeDecl* decl, Scope* scope);

@@ -733,6 +733,13 @@
       "status": "resolves"
     },
     {
+      "name": "interfaces.c.strings",
+      "source": "runtime/ada/interfaces/c/strings.ads",
+      "scope": "annex_subset",
+      "rm": "B.3.1",
+      "status": "resolves"
+    },
+    {
       "name": "standard",
       "source": "compiler builtin",
       "scope": "core",

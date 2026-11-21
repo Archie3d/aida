@@ -49,6 +49,7 @@ def main():
         environment.pop(key, None)
     environment['ADA_INCLUDE_PATH'] = str(library)
     model = '''with Interfaces.C;
+with Interfaces.C.Strings;
 package Model is
     Seed : constant Integer := 5;
     type Item is private;
@@ -62,6 +63,8 @@ package Model is
     pragma Convention (C, Length_Function);
     function Measure (Value : Interfaces.C.char_array) return Interfaces.C.size_t;
     pragma Import (C, Measure, "strlen");
+    function Measure_Pointer (Value : Interfaces.C.Strings.chars_ptr) return Interfaces.C.size_t;
+    pragma Import (C, Measure_Pointer, "strlen");
     Failure : exception;
 private
     type Item is record N : Integer; end record;
@@ -108,13 +111,16 @@ package Other_Extras is N : constant Integer := 1; end Other_Extras;''')
     write(source, '''with Ada.Text_IO; with Model; with Model.Child; with Tools;
 with Alias; with Helper; with Extras; with Other_Extras; with Consumer; with Split; with Decl_View; with Index_Name;
 with Interfaces.C;
+with Interfaces.C.Strings;
 procedure Client is
+    package Strings renames Interfaces.C.Strings;
     use type Interfaces.C.size_t;
     package Instance is new Tools (Model.Item);
     X : Model.Item := Instance.Identity (Model.Make);
     T : Model.Tagged_Item := (N => 4);
     C_Text : Interfaces.C.char_array := Interfaces.C.To_C (String'("source-free"));
     Text : String := Interfaces.C.To_Ada (C_Text);
+    C_Pointer : Strings.chars_ptr := Strings.New_String (Text);
     Measure : Model.Length_Function := Model.Measure'Access;
 begin
     Helper;
@@ -124,9 +130,12 @@ begin
         or else Consumer.N /= 7 or else Split.Value /= 11 or else Decl_View.N + Index_Name.N /= 7
         or else Model.Native_Count (16#4000_0000_0000_0000#) /= 16#8000_0000_0000_0000#
         or else Text /= "source-free"
-        or else Model.Measure (C_Text) /= 11 or else Measure (C_Text) /= 11 then
+        or else Model.Measure (C_Text) /= 11 or else Measure (C_Text) /= 11
+        or else Model.Measure_Pointer (C_Pointer) /= 11
+        or else Strings.Value (C_Pointer) /= Text then
         raise Program_Error;
     end if;
+    Strings.Free (C_Pointer);
     begin raise Model.Failure; exception when Model.Failure => null; end;
     Ada.Text_IO.Put_Line ("source-free");
 end Client;''')
@@ -167,7 +176,7 @@ end Client;''')
     command = [args.ada, '--no-stdlib', '-v', '-D', client_objects, '-o', target, source]
     built = run(command, environment)
     run([target], environment, expected='source-free\n')
-    for unit in ('model', 'interfaces', 'interfaces-c'):
+    for unit in ('model', 'interfaces', 'interfaces-c', 'interfaces-c-strings'):
         if f'{unit} uses a compiled semantic interface' not in built.stderr:
             raise RuntimeError(f'driver did not reuse the compiled semantic interface for {unit}')
     # This client has a full private representation, default expressions,

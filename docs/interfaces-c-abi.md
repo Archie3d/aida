@@ -3,8 +3,8 @@
 Phase 13 targets the Ada 2005 packages `Interfaces`, `Interfaces.C`,
 `Interfaces.C.Strings` and `Interfaces.C.Pointers`. The existing
 [C Import and callback subset](subprogram-access.md) provides the starting
-point. `Interfaces` and the scalar and character-array APIs of `Interfaces.C`
-are available.
+point. `Interfaces`, the scalar and character-array APIs of `Interfaces.C`,
+and `Interfaces.C.Strings` are available.
 [Ada 2005 RM B.2](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-2.html),
 [B.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3.html),
 [B.3.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3-1.html),
@@ -218,9 +218,9 @@ Fixed-arity native `Import (C, ...)` declarations and named C callbacks share
 one call convention. A compatible one-dimensional array contributes a single
 pointer to its elements to the C argument list. This covers the four
 `Interfaces.C` character arrays and rank-one arrays with naturally laid-out
-integer, floating-point or compatible enumeration elements. Slice arguments
-start at the slice's first element. Constrained formals still check the array
-shape. `out` and `in out` arrays allow C to write to their elements.
+integer, floating-point, compatible enumeration or native pointer elements.
+Slice arguments start at the slice's first element. Constrained formals still
+check the array shape. `out` and `in out` arrays allow C to write to their elements.
 
 C code must observe the declared parameter mode, stay within the actual
 buffer, and supply valid Ada component values when it writes. The caller must
@@ -262,3 +262,46 @@ Windows LLP64 and Linux arm64. Runtime execution was verified on Darwin arm64.
 The 2,224-test Release run found three regressions in the enumeration and
 record layout fixtures. All three passed in the final 116-test Release sweep.
 The 23 focused ABI checks and 13 libc fixture checks passed with ASan/UBSan.
+
+## C strings
+
+`Interfaces.C.Strings` is preelaborated. Its private `chars_ptr` holds a native
+`char *` and defaults to `Null_Ptr`. A `chars_ptr_array` has aliased pointer
+elements and can be passed directly to a C routine expecting `char **`.
+
+`New_Char_Array` and `New_String` allocate a copy through the C allocator. The
+copy ends at the first NUL or the end of the input and always includes a NUL
+terminator. Allocation failure raises `Storage_Error`. Release the result
+once with `Free`, which resets that variable to `Null_Ptr`. Any other copies
+of the pointer become invalid as soon as the allocation is released.
+
+`To_Chars_Ptr` borrows the bytes of an aliased Ada array. With `Nul_Check`
+enabled it raises `Terminator_Error` for an array with no NUL. The caller must
+keep the array alive for every use of the borrowed pointer. An Ada allocator
+or a foreign library that owns a buffer must release it through its own
+deallocator. `Interfaces.C.Strings.Free` is for the two allocation functions
+in this package. [Ada 2005 RM B.3.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3-1.html).
+
+`Strlen` and `Value` without `Length` require a valid NUL-terminated buffer.
+The counted forms read up to `Length` bytes and stop at the first NUL. The
+caller must provide readable storage up to that bound or an earlier NUL.
+An array result includes any NUL read and starts at zero. A string result
+starts at one and omits the NUL. Null pointers raise `Dereference_Error`,
+and a zero `Length` on a nonnull pointer raises `Constraint_Error`.
+
+`Update` counts its byte offset from zero. With `Check => True` it raises
+`Update_Error` for a write that would overwrite or skip past the current
+terminator. Its copy supports overlap with the source array. An unchecked update
+requires the caller to satisfy the same offset and length limits and provide a
+writable buffer. An empty `String` follows `To_C` with `Append_Nul => False`
+and propagates `Constraint_Error`.
+
+The tests exercise borrowed and owned storage, independent concurrent calls,
+exact-size C buffers, and allocation failure by substituting the allocator
+only in the test translation unit. They also cover whole and per-unit builds,
+source-free interface replay, and installation relocation.
+
+On Darwin arm64, all 2,229 Release checks and 14 focused ASan/UBSan checks
+passed. The four-worker test passed with a ThreadSanitizer-instrumented C
+runtime. An ASan shadow-memory check confirmed that `Free` released the C
+allocation.

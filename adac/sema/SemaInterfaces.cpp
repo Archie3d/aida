@@ -29,12 +29,6 @@ bool nativeCObjectTarget(const Type* type)
     return nativeCElement(type) && sharedTypeKind(type) == 0;
 }
 
-bool nativeCArray(const Type* type)
-{
-    return type->arrayRank == 1 && type->packedComponentBits == 0
-        && nativeCObjectTarget(type->element) && typeAlignment(type) >= typeAlignment(type->element);
-}
-
 bool nativeCRecord(Type* type)
 {
     Type* layout = baseType(type);
@@ -59,11 +53,27 @@ bool Sema::supportsNativeCResult(Type* type)
     return nativeCObjectTarget(type->target);
 }
 
+bool Sema::supportsNativeCArray(Type* type)
+{
+    Type* element = type->element;
+    if (type->arrayRank != 1 || type->packedComponentBits != 0 || element == nullptr
+        || typeAlignment(type) < typeAlignment(element)) {
+        return false;
+    }
+    if (element->kind == TypeKind::Access) {
+        return !element->accessParameter && !element->accessDiscriminant
+            && typeSize(element) == kCAbiTarget.pointerBytes
+            && typeAlignment(element) == kCAbiTarget.pointerAlignment
+            && sharedTypeKind(element) == 0 && supportsNativeCResult(element);
+    }
+    return nativeCObjectTarget(element);
+}
+
 bool Sema::supportsNativeCParameter(const Symbol* parameter)
 {
     Type* type = parameter->type;
     if (type == nullptr || type->isIncomplete) { return false; }
-    if (type->kind == TypeKind::Array) { return nativeCArray(type); }
+    if (type->kind == TypeKind::Array) { return supportsNativeCArray(type); }
     if (type->kind == TypeKind::Record) { return nativeCRecord(type); }
     if (type->kind == TypeKind::Access && type->anonymousAccess) {
         return parameter->mode == ParameterMode::In && type->accessParameter
@@ -74,7 +84,7 @@ bool Sema::supportsNativeCParameter(const Symbol* parameter)
 
 bool Sema::supportsNativeCStorage(Type* type)
 {
-    return !type->isIncomplete && (type->kind == TypeKind::Array ? nativeCArray(type)
+    return !type->isIncomplete && (type->kind == TypeKind::Array ? supportsNativeCArray(type)
         : type->kind == TypeKind::Access && type->accessProfile == nullptr && supportsNativeCResult(type));
 }
 #include "SemaSupport.h"

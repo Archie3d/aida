@@ -9,7 +9,7 @@ matrix and the checked [inventory](../tests/predefined/inventory.json).
 
 The original audit named 109 source specifications and the two compiler builtins
 Standard/System. After [Storage_Elements](storage-elements.md), the current
-inventory covers 127 source specifications plus builtin Standard: 128 resolving
+inventory covers 128 source specifications plus builtin Standard: 129 resolving
 units, with no absent units. System is now an analyzed source specification,
 retaining only its canonical Address bootstrap in the compiler. Its baseline check compiles an independent import probe for each resolving
 unit, checks every runtime spec is accounted for, and verifies exact normal
@@ -20,7 +20,8 @@ identified separately.
 
 [Interfaces and Interfaces.C](interfaces-c-abi.md#scalar-packages) now resolve.
 `Interfaces.C` includes scalars and [character arrays and conversions](interfaces-c-abi.md#character-arrays-and-conversions).
-Its child packages remain Phase 13 work.
+[`Interfaces.C.Strings`](interfaces-c-abi.md#c-strings) also resolves and provides
+native C string pointers. `Interfaces.C.Pointers` is the next child package.
 
 [Ada.Storage_IO](storage-io.md) now supplies typed representation buffers and
 ordinary Read/Write procedures, including runtime-sized inline layouts and
