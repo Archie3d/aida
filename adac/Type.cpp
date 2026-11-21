@@ -462,6 +462,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->needsZeroInit = parent->needsZeroInit;
     subtype->literals = parent->literals;
     subtype->enumCodes = parent->enumCodes;
+    subtype->cCharacter = parent->cCharacter;
     subtype->digits = parent->digits;
     subtype->fixedScale = parent->fixedScale;
     subtype->fixedAft = parent->fixedAft;

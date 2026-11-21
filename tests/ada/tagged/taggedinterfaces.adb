@@ -1,7 +1,7 @@
 with Ada.Text_IO;
 with Ada.Tags;
 with Ada.Unchecked_Deallocation;
-procedure Interfaces is
+procedure TaggedInterfaces is
     procedure Run (Seed : Integer) is
         package Model is
             type Readable is interface;
@@ -114,4 +114,4 @@ begin
         null;
     end;
     Ada.Text_IO.Put_Line ("interfaces passed");
-end Interfaces;
+end TaggedInterfaces;

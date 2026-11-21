@@ -1263,6 +1263,7 @@ struct PragmaDecl : Decl
     std::string entityLower;
     std::string linkName;
     bool conventionAda = false;
+    bool conventionIntrinsic = false;
     std::vector<Association> arguments;
     uint32_t checkMask = 0;
     bool assertionsEnabled = true;

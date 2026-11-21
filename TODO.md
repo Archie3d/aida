@@ -35,12 +35,13 @@ following in dependency order:
   needed. Support addressable aliased character elements with native strides.
   Validate layout against C, including high-bit values and boundary failures.
   [Representation verification](docs/interfaces-c-abi.md#representation-verification).
-- [ ] **Parent and scalar packages.** Add `Interfaces` integer/modular
+- [x] **Parent and scalar packages.** Add `Interfaces` integer/modular
   types, shift/rotate operations and hardware floating types, then `Interfaces.C`
   numeric types, implementation-defined constants and character types. Preserve package purity,
   distinct type identity, overload resolution, generic matching and separate-unit
   metadata. Register installed sources and predefined inventory entries. Keep
   target-dependent floating formats explicitly gated by 13a's contract.
+  [Scalar package contract and verification](docs/interfaces-c-abi.md#scalar-packages).
 - [ ] **Character arrays and conversions.** Implement narrow, wide,
   `char16_t` and `char32_t` arrays and the conversion/termination APIs. Cover
   functional and buffer forms, counts, nonzero lower bounds, null arrays,

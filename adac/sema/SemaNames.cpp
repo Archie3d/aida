@@ -105,6 +105,9 @@ std::vector<Symbol*> Sema::lookupAll(const std::string& lower, Scope* scope)
 
 Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const SourceLocation& location)
 {
+    if (lower.starts_with("aida_c_")) {
+        if (Type* target = interfacesCTargetType(lower, scope, location)) { return target; }
+    }
     if (lower.ends_with("'class")) {
         Type* specific = resolveTypeName(lower.substr(0, lower.size() - 6), scope, location);
         if (specific == nullptr) {
@@ -154,6 +157,7 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
         m_diagnostics.error(location, "'" + symbol->displayName + "' is not a type");
         return nullptr;
     }
+    if (!checkAvailableType(symbol->type, location)) { return nullptr; }
     if (m_recordContract != nullptr) {
         m_recordContract->typeNames[key] = symbol;
     }
@@ -200,6 +204,9 @@ Symbol* Sema::resolveBareName(const std::vector<Symbol*>& candidates, Type* expe
             }
             if (candidate->kind == SymbolKind::Statement) {
                 m_diagnostics.error(location, "statement identifier '" + name + "' cannot be used as a value");
+                return nullptr;
+            }
+            if (candidate->kind == SymbolKind::TypeName && !checkAvailableType(candidate->type, location)) {
                 return nullptr;
             }
             return candidate;

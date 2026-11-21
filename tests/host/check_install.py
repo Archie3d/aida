@@ -62,6 +62,11 @@ def main():
                 raise RuntimeError('installed runtime hierarchy is missing Text_IO')
             if (library / ('ada-text_io.' + extension)).exists():
                 raise RuntimeError('installed runtime contains a stale flat Text_IO copy')
+        interfaces_c = library / 'interfaces/c.ads'
+        if not (library / 'interfaces.ads').is_file() or not interfaces_c.is_file():
+            raise RuntimeError('installed runtime hierarchy is missing Interfaces or Interfaces.C')
+        interfaces_c.write_text(interfaces_c.read_text().replace('end Interfaces.C;',
+                                '    Relocation_Scalar_Probe : constant := 16;\nend Interfaces.C;'))
         source = root / 'source with spaces'
         source.mkdir()
         dependencies = root / 'dependency library with spaces'
@@ -69,11 +74,18 @@ def main():
         (dependencies / 'helper.ads').write_text('package Helper is\n    Value : constant Integer := 9;\nend Helper;\n')
         main_source = source / 'probe.adb'
         main_source.write_text('''with Ada.Text_IO;
+with Interfaces;
+with Interfaces.C;
 with System;
 with Helper;
 procedure Probe is
+    use type Interfaces.C.size_t;
 begin
     if Helper.Value /= 9 then
+        raise Program_Error;
+    end if;
+    if Interfaces.C.size_t (Interfaces.Shift_Left (Interfaces.Unsigned_8'(1), 4))
+        /= Interfaces.C.Relocation_Scalar_Probe then
         raise Program_Error;
     end if;
     Ada.Text_IO.Put_Line ("installed" & Integer'Image (System.Relocation_Probe));

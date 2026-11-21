@@ -1,4 +1,5 @@
 #include "Sema.h"
+#include "../../common/CAbiFacts.h"
 
 #include <algorithm>
 #include <functional>
@@ -78,6 +79,9 @@ void Sema::prepareLimitedViews(const std::vector<CompilationUnit*>& units)
                 names.front()->type->privateViewTagged = true;
             }
             m_limitedCompletions[typeDecl] = full;
+            if (name == "interfaces.c" && typeDecl->lower == "long_double" && !cAbiHasNativeLongDouble()) {
+                m_unavailableLongDouble = full;
+            }
         }
         return package;
     };

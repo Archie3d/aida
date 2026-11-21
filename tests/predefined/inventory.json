@@ -719,6 +719,20 @@
       "status": "resolves"
     },
     {
+      "name": "interfaces",
+      "source": "runtime/ada/interfaces.ads",
+      "scope": "annex_subset",
+      "rm": "B.2",
+      "status": "resolves"
+    },
+    {
+      "name": "interfaces.c",
+      "source": "runtime/ada/interfaces/c.ads",
+      "scope": "annex_subset",
+      "rm": "B.3",
+      "status": "resolves"
+    },
+    {
       "name": "standard",
       "source": "compiler builtin",
       "scope": "core",

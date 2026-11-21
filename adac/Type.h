@@ -10,6 +10,13 @@
 #include <utility>
 #include <vector>
 
+enum class CCharacterConvention
+{
+    None,
+    Signed,
+    Unsigned
+};
+
 enum class TypeKind
 {
     Void,
@@ -220,6 +227,7 @@ struct Type
     // Expressions and the Ada scalar call ABI use positions; storage and C
     // scalar calls use these signed 32-bit codes. Empty means positional codes.
     std::vector<long long> enumCodes;
+    CCharacterConvention cCharacter = CCharacterConvention::None;
     bool enumCodesSpecified = false;
 
     // Floating point types.  The requested number of decimal digits selects the

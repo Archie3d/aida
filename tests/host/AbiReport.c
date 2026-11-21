@@ -1,4 +1,4 @@
-#include "CAbiFacts.h"
+#include "../../common/CAbiFacts.h"
 #include "../../runtime/adart.h"
 #include "../../common/Array.h"
 
@@ -8,36 +8,13 @@
 #include <stdio.h>
 #include <string.h>
 
-static const char* floatingFormat(const CAbiFloat* type)
-{
-    unsigned int bits = type->bytes * kCAbiTarget.charBits;
-    if (kCAbiTarget.floatRadix == 2) {
-        if (bits == 32 && type->mantissaDigits == 24
-            && type->minExponent == -125 && type->maxExponent == 128) {
-            return "binary32";
-        }
-        if (bits == 64 && type->mantissaDigits == 53
-            && type->minExponent == -1021 && type->maxExponent == 1024) {
-            return "binary64";
-        }
-        if (type->minExponent == -16381 && type->maxExponent == 16384) {
-            if (bits >= 80 && type->mantissaDigits == 64) {
-                return "x87 extended";
-            }
-            if (bits == 128 && type->mantissaDigits == 113) {
-                return "binary128";
-            }
-        }
-    }
-    return "unknown";
-}
-
 static void reportCAbi(void)
 {
     printf(",\"char_bit\":%u,\"schar_min\":%d,\"schar_max\":%d,\"uchar_max\":%u,"
-           "\"pointer_alignment\":%u,\"float_radix\":%d,\"c_integers\":{",
+           "\"pointer_alignment\":%u,\"float_radix\":%d,\"target\":\"%s\",\"native_long_double\":%s,\"c_integers\":{",
            kCAbiTarget.charBits, kCAbiTarget.signedCharMin, kCAbiTarget.signedCharMax,
-           kCAbiTarget.unsignedCharMax, kCAbiTarget.pointerAlignment, kCAbiTarget.floatRadix);
+           kCAbiTarget.unsignedCharMax, kCAbiTarget.pointerAlignment, kCAbiTarget.floatRadix,
+           kCAbiTargetName, cAbiHasNativeLongDouble() ? "true" : "false");
     for (size_t index = 0; index < kCAbiIntegerCount; ++index) {
         const CAbiInteger* type = &kCAbiIntegers[index];
         printf("%s\"%s\":{\"bytes\":%u,\"alignment\":%u,\"signed\":%s}",
@@ -51,7 +28,7 @@ static void reportCAbi(void)
         printf("%s\"%s\":{\"bytes\":%u,\"alignment\":%u,\"mantissa_digits\":%d,"
                "\"min_exponent\":%d,\"max_exponent\":%d,\"format\":\"%s\"}",
                index == 0 ? "" : ",", type->name, type->bytes, type->alignment,
-               type->mantissaDigits, type->minExponent, type->maxExponent, floatingFormat(type));
+               type->mantissaDigits, type->minExponent, type->maxExponent, cAbiFloatingFormat(type));
     }
     printf("}}\n");
 }

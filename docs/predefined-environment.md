@@ -9,7 +9,7 @@ matrix and the checked [inventory](../tests/predefined/inventory.json).
 
 The original audit named 109 source specifications and the two compiler builtins
 Standard/System. After [Storage_Elements](storage-elements.md), the current
-inventory covers 125 source specifications plus builtin Standard: 126 resolving
+inventory covers 127 source specifications plus builtin Standard: 128 resolving
 units, with no absent units. System is now an analyzed source specification,
 retaining only its canonical Address bootstrap in the compiler. Its baseline check compiles an independent import probe for each resolving
 unit, checks every runtime spec is accounted for, and verifies exact normal
@@ -17,6 +17,10 @@ missing-unit diagnostics.
 Resolving a unit is not a claim that its complete API is implemented. Core and
 compatibility units, selected annex subsets and implementation extensions are
 identified separately.
+
+[Interfaces and Interfaces.C](interfaces-c-abi.md#scalar-packages) now resolve.
+The inventory records `Interfaces.C` at its scalar scope. Its character arrays,
+conversion operations and child packages remain Phase 13 work.
 
 [Ada.Storage_IO](storage-io.md) now supplies typed representation buffers and
 ordinary Read/Write procedures, including runtime-sized inline layouts and

@@ -1434,6 +1434,10 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
         m_diagnostics.error(decl->location, "pragma Import must precede freezing of the subprogram");
         return;
     }
+    if (decl->conventionIntrinsic) {
+        analyzeInterfacesIntrinsic(decl, scope, target);
+        return;
+    }
     target->builtin = BuiltinKind::Runtime;
     if (!decl->conventionAda && needsFinalization(target->returnType) && !isFileHandleView(target->returnType)) {
         m_diagnostics.error(decl->location, "controlled function results require an Ada-convention import");

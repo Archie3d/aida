@@ -67,7 +67,7 @@ claim.
 
 ## Regression evidence
 
-`interfaces` covers multiple contracts, inherited concrete implementations,
+`taggedinterfaces` covers multiple contracts, inherited concrete implementations,
 class-wide and access cross-conversions, membership, nulls and deallocation.
 `interfacediamonds` covers shared ancestors, null-over-abstract inheritance,
 required overrides and tag queries. `interfaceownership` combines private views,

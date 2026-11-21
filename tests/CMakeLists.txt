@@ -1776,7 +1776,7 @@ foreach(dynamic_case importedcontrolled exceptionlibrary exceptionlibrarytasking
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
     emptymasterblocks blockmastercalls constantarrayoffsets aggregatezeroing aggregatetemporaries aggregatetemporarycleanup boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary
-    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector realnumbers supportedrejections abstractsubprograms abstractinheritance controllingaccessresults overridingnull classwideconstraints taggedvariantgroups taggedviews taggedruntime taggeddependent privatedelayed taggedinstances taggedcontrolled interfaces interfacediamonds interfaceownership interfacecategories interfaceprofiles interfacegenerics)
+    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector realnumbers supportedrejections abstractsubprograms abstractinheritance controllingaccessresults overridingnull classwideconstraints taggedvariantgroups taggedviews taggedruntime taggeddependent privatedelayed taggedinstances taggedcontrolled taggedinterfaces interfacediamonds interfaceownership interfacecategories interfaceprofiles interfacegenerics)
     add_ada_test(${dynamic_case} SOURCES ${dynamic_case}.adb)
     add_determinism_test(${dynamic_case} SOURCE ${dynamic_case}.adb)
     ada_test_fixture(source_path "${dynamic_case}.adb")
@@ -3060,10 +3060,34 @@ set_tests_properties(runtime.legalityaudit_modes PROPERTIES TIMEOUT 60)
 # each native runner, including MSYS2's LLP64 data model.
 add_executable(host_paths_test host/PathsTest.cpp)
 add_test(NAME host.paths COMMAND host_paths_test)
-add_executable(host_abi_report host/AbiReport.c host/CAbiFacts.c)
+add_executable(host_abi_report host/AbiReport.c ${PROJECT_SOURCE_DIR}/common/CAbiFacts.c)
 target_compile_features(host_abi_report PRIVATE c_std_11)
 add_test(NAME host.abi_layout COMMAND host_abi_report)
 add_determinism_test(hostabi SOURCE driver/hostabi.adb)
+add_determinism_test(interfacesscalars SOURCE interfaces/interfacesscalars.adb)
+add_ada_error_test(interfacesscalarerrors SOURCES interfaces/interfacesscalarerrors.adb)
+set(interfaces_mode_arguments
+    -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+    -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+    -DRUNTIME=$<TARGET_FILE:adart> -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+    -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+    -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/host/InterfacesAbi.c)
+add_test(NAME host.interfaces_scalar_types
+    COMMAND ${CMAKE_COMMAND} ${interfaces_mode_arguments}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/interfaces/interfacesscalars.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/interfaces/interfacesscalars.expected
+        "-DWORKDIR=${ADA_TEST_WORK_DIR}/Interfaces scalar types"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+add_test(NAME host.interfaces_long_double
+    COMMAND ${CMAKE_COMMAND} ${interfaces_mode_arguments}
+        -DABI_REPORT=$<TARGET_FILE:host_abi_report>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/interfaces/interfaceslongdouble.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/interfaces/interfaceslongdouble.expected
+        -DUNAVAILABLE=${CMAKE_CURRENT_SOURCE_DIR}/ada/interfaces/interfaceslongdoubleunavailable.adb
+        "-DWORKDIR=${ADA_TEST_WORK_DIR}/Interfaces long double"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckInterfacesLongDouble.cmake)
+set_tests_properties(host.interfaces_scalar_types host.interfaces_long_double determinism.interfacesscalars
+    PROPERTIES TIMEOUT 60 LABELS "host")
 add_determinism_test(cscalarwidth SOURCE numerics/cscalarwidth.adb)
 add_test(NAME host.c_scalar_widths
     COMMAND ${CMAKE_COMMAND}

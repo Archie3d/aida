@@ -124,6 +124,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
     }
 
+    if (declareUnavailableLongDouble(decl, scope)) { return; }
+
     if (scope == m_addressType->declarationScope && decl->lower == "address") {
         if (decl->definition == nullptr || decl->definition->kind != TypeDefKind::Private
             || decl->definition->tagged || decl->definition->isLimited || !decl->discriminants.empty()
@@ -1245,6 +1247,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     if (completing != nullptr && type->kind == TypeKind::Record) {
         m_types.refreshRecordSubtypes(type);
     }
+    setInterfacesCCharacterConvention(type, decl, scope);
     decl->declaredType = type;
     Symbol* symbol = nullptr;
     if (completing != nullptr && !predeclared) {

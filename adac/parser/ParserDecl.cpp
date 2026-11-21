@@ -457,13 +457,14 @@ DeclPtr Parser::parsePragma(bool allowShared, bool configuration)
     expect(TokenKind::LeftParen, "after pragma Import");
     rejectNamedArgument();
     const Token& convention = expect(TokenKind::Identifier, "as Import convention");
-    if (convention.lower != "c" && convention.lower != "ada") {
+    if (convention.lower != "c" && convention.lower != "ada" && convention.lower != "intrinsic") {
         m_diagnostics.error(convention.location, "unsupported Import convention '" + convention.text
-            + "'; only C and Ada are supported");
+            + "'; supported conventions are C, Ada and predefined Intrinsic imports");
         skipToSemicolon();
         return nullptr;
     }
     pragma->conventionAda = convention.lower == "ada";
+    pragma->conventionIntrinsic = convention.lower == "intrinsic";
     expect(TokenKind::Comma, "after Import convention");
     rejectNamedArgument();
     if (check(TokenKind::Identifier)
@@ -473,6 +474,12 @@ DeclPtr Parser::parsePragma(bool allowShared, bool configuration)
         advance();
     } else {
         fail("expected a subprogram name in pragma Import");
+    }
+    if (pragma->conventionIntrinsic) {
+        if (check(TokenKind::Comma)) { fail("predefined Intrinsic Import does not take an external name"); }
+        expect(TokenKind::RightParen, "after intrinsic Import entity");
+        expect(TokenKind::Semicolon, "after pragma");
+        return pragma;
     }
     if (!match(TokenKind::Comma)) {
         fail("pragma Import requires an explicit external name");

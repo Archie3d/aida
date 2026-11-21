@@ -121,6 +121,7 @@ Type* Sema::attributeSubtypeMark(Expr* prefix, Scope* scope)
     }
     for (Symbol* symbol : expressionNames(prefix, scope)) {
         if (symbol->kind != SymbolKind::TypeName) { continue; }
+        if (!checkAvailableType(symbol->type, prefix->location)) { return nullptr; }
         recordContractName(prefix, symbol);
         return symbol->type;
     }

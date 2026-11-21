@@ -1195,8 +1195,9 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
 
 static std::string cScalarClass(Type* type)
 {
-    if (type->kind == TypeKind::Integer) {
-        bool signedValue = scalarStorageSigned(type);
+    if (type->kind == TypeKind::Integer || type->cCharacter != CCharacterConvention::None) {
+        bool signedValue = type->kind == TypeKind::Integer ? scalarStorageSigned(type)
+            : type->cCharacter == CCharacterConvention::Signed;
         switch (typeSize(type)) {
         case 1: return signedValue ? "sb" : "ub";
         case 2: return signedValue ? "sh" : "uh";
@@ -1357,7 +1358,11 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
     emitCallInstruction(temp + " =" + convention + " call " + subprogram->runtimeSymbol + "(" + argumentList + ")", CallEffects::DeferredCheck);
     if (convention.size() == 2) {
         std::string extended = newTemp();
-        line(extended + " =w ext" + convention + " " + temp);
+        // The foreign character's sign affects its calling convention. Its
+        // Ada representation is the nonnegative character position.
+        std::string extension = convention;
+        if (returnType->cCharacter != CCharacterConvention::None) { extension[0] = 'u'; }
+        line(extended + " =w ext" + extension + " " + temp);
         temp = extended;
     }
     if (type == 'l' && convention != "l") {
@@ -1370,6 +1375,10 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         temp = narrow;
     }
     copyBack();
+    if (nativeC && returnType->cCharacter != CCharacterConvention::None) {
+        emitExceptionCheck();
+        emitRangeCheck(Value {temp, type}, returnType, expr->location);
+    }
     if (!subprogram->importAda && !subprogram->returnType->enumCodes.empty()) {
         emitExceptionCheck();
         Value value = enumPosition(Value { temp, type }, subprogram->returnType);

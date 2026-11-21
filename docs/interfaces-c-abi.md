@@ -3,7 +3,7 @@
 Phase 13 targets the Ada 2005 packages `Interfaces`, `Interfaces.C`,
 `Interfaces.C.Strings` and `Interfaces.C.Pointers`. The existing
 [C Import and callback subset](subprogram-access.md) provides the starting
-point. Package declarations follow the compiler representation work.
+point. `Interfaces` and the scalar part of `Interfaces.C` are available.
 [Ada 2005 RM B.2](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-2.html),
 [B.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3.html),
 [B.3.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-B-3-1.html),
@@ -55,9 +55,9 @@ The floating formats have radix 2. The table gives the C `<float.h>` values.
 The x87 format has an 80-bit encoding in a 16-byte C object on these targets.
 The Windows row uses the GNU/MinGW target selected by the project’s
 MSYS2 UCRT64 configuration. C compiler options such as `-funsigned-char`,
-`-fshort-wchar` or `-mlong-double-64` can change individual facts. Future
-package selection must use the supported target compiler defaults and keep the
-frontend, runtime, QBE target and linker toolchain on the same ABI. See the
+`-fshort-wchar` or `-mlong-double-64` can change individual facts. The frontend
+uses facts compiled by the configured C compiler. Foreign objects, runtime
+and linker toolchain must use the same ABI. See the
 [native host matrix](host-validation.md#native-matrix).
 
 ## Probe and evidence
@@ -83,7 +83,7 @@ The following command shows the Windows GNU facts.
 
 ```sh
 clang --target=x86_64-w64-windows-gnu -std=c11 -ffreestanding \
-    -S -emit-llvm tests/host/CAbiFacts.c -o - | rg '^@kCAbi(Target|Integers|Floats) ='
+    -S -emit-llvm common/CAbiFacts.c -o - | rg '^@kCAbi(Target|Integers|Floats) ='
 ```
 
 Use `arm64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`,
@@ -97,12 +97,10 @@ mode to `ada`.
 Use QBE’s existing `d` scalar for `Interfaces.C.long_double` only when the
 target C compiler provides binary64 with the same size, alignment, and
 argument and result convention as C `double`. Keep the Ada type distinct
-from `Interfaces.C.double`. Darwin arm64 is the candidate in this matrix.
-An exploratory native probe called a C `long double` function directly and
-through a C-convention access value using Ada `Long_Float`. Ten floating-point
-arguments exercised registers and the stack, and the returned value agreed in
-both whole and per-unit builds. Repeat these checks with the package type before
-claiming package support.
+from `Interfaces.C.double`. Darwin arm64 supports this representation. The
+native test calls a C `long double` function directly and through a
+C-convention access value using the package type. Ten floating-point
+arguments exercise registers and the stack in whole and per-unit builds.
 
 For x87 extended, binary128 or an unrecognized format, keep the supported
 declarations in `Interfaces.C` usable and diagnose use of `long_double` with
@@ -145,6 +143,41 @@ generated Ada assembly and C helper also compile to objects for the five
 target ABIs in the matrix. Native execution on the other targets is part of
 the phase's integration checks.
 
-The Darwin arm64 Release campaign covered 2,213 checks. Three container
+The representation increment's Darwin arm64 Release campaign covered 2,213 checks. Three container
 compiles reached the harness deadlines during the parallel run and passed
 on isolated reruns. Thirteen focused ASan/UBSan checks passed.
+
+## Scalar packages
+
+`Interfaces` is Pure and declares `Integer_8` through `Integer_64`,
+`Unsigned_8` through `Unsigned_64`, and the distinct `IEEE_Float_32` and
+`IEEE_Float_64` types. The five shift and rotate operations are Intrinsic for
+each modular width. Shift counts at or above the width produce zero or the
+arithmetic sign fill. Rotation counts wrap modulo the width. A negative count
+fails the `Natural` parameter check, and intrinsic subprograms reject `'Access`.
+
+`Interfaces.C` is Pure and declares the standard integer, modular and floating
+types, the C character limit constants, and the four character types and NUL
+constants. `long`, `unsigned_long`, `plain_char` and `wchar_t` follow the
+configured C compiler. Character operations preserve Ada positions. Imported
+C calls use the native ABI class, including the signedness of plain `char`.
+`wchar_t` derives from `Wide_Character` at 16 bits and `Wide_Wide_Character`
+at 32 bits. `char32_t` and 32-bit `wchar_t` admit the Ada `Wide_Wide_Character`
+range. Foreign character results outside the Ada type's range raise
+`Constraint_Error`. Character arrays and the `To_C`, `To_Ada` and termination
+operations follow in the next increment.
+
+The regression tests cover declarations and predicates against a C helper,
+type identity, all four overloaded intrinsic profiles through generic formal
+subprograms, a Pure client, whole and per-unit builds, deterministic IR,
+source-free replay and a relocated installation. `host.interfaces_long_double`
+checks the native call path or verifies target- and format-specific diagnostics
+on unsupported targets.
+
+Darwin arm64 passed all 2,217 Release checks across the full run and reruns
+of the renamed tagged-interface fixture. The final focused Release run passed
+16 checks, and 10 focused ASan/UBSan checks passed. The C facts, shift runtime
+and Ada/C scalar fixture cross-assembled for all five targets. Simulated LLP64
+and Linux arm64 facts exercised the alternate scalar layouts and the x87 and
+binary128 diagnostics, including through limited views. Native execution on
+the other four targets remains an integration check.

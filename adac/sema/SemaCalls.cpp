@@ -238,6 +238,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
 
     // A type mark applied to one argument is a type conversion.
     if (candidates.size() == 1 && candidates.front()->kind == SymbolKind::TypeName) {
+        if (!checkAvailableType(candidates.front()->type, expr->callee->location)) { return nullptr; }
         if (expr->arguments.size() != 1) {
             m_diagnostics.error(expr->location, "a type conversion takes exactly one operand");
             return nullptr;

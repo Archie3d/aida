@@ -48,7 +48,8 @@ def main():
     for key in ['ADA_LIBRARY', 'ADA_INCLUDE_PATH', 'ADAC', 'QBE', 'ADA_RUNTIME']:
         environment.pop(key, None)
     environment['ADA_INCLUDE_PATH'] = str(library)
-    model = '''package Model is
+    model = '''with Interfaces.C;
+package Model is
     Seed : constant Integer := 5;
     type Item is private;
     function Make (N : Integer := Seed) return Item;
@@ -56,15 +57,22 @@ def main():
     function Value (X : Integer) return Integer;
     type Tagged_Item is tagged record N : Integer; end record;
     function Next (X : Tagged_Item) return Integer;
+    function Native_Count (Value : Interfaces.C.size_t) return Interfaces.C.size_t;
     Failure : exception;
 private
     type Item is record N : Integer; end record;
 end Model;'''
-    model_body = '''package body Model is
+    model_body = '''with Interfaces;
+with Interfaces.C;
+package body Model is
     function Make (N : Integer := Seed) return Item is begin return (N => N); end Make;
     function Value (X : Item) return Integer is begin return X.N; end Value;
     function Value (X : Integer) return Integer is begin return X + 1; end Value;
     function Next (X : Tagged_Item) return Integer is begin return X.N + 1; end Next;
+    function Native_Count (Value : Interfaces.C.size_t) return Interfaces.C.size_t is
+    begin
+        return Interfaces.C.size_t (Interfaces.Shift_Left (Interfaces.Unsigned_64 (Value), 1));
+    end Native_Count;
 end Model;'''
     write(library / 'model.ads', model)
     write(library / 'model.adb', model_body)
@@ -95,7 +103,9 @@ package Other_Extras is N : constant Integer := 1; end Other_Extras;''')
     source = app / 'client.adb'
     write(source, '''with Ada.Text_IO; with Model; with Model.Child; with Tools;
 with Alias; with Helper; with Extras; with Other_Extras; with Consumer; with Split; with Decl_View; with Index_Name;
+with Interfaces.C;
 procedure Client is
+    use type Interfaces.C.size_t;
     package Instance is new Tools (Model.Item);
     X : Model.Item := Instance.Identity (Model.Make);
     T : Model.Tagged_Item := (N => 4);
@@ -104,7 +114,8 @@ begin
     if Model.Value (X) /= 5 or else Model.Value (3) /= 4
         or else Model.Child.Extra /= 3 or else T.Next /= 5
         or else Alias.Seed /= 5 or else Extras.N + Other_Extras.N /= 8
-        or else Consumer.N /= 7 or else Split.Value /= 11 or else Decl_View.N + Index_Name.N /= 7 then
+        or else Consumer.N /= 7 or else Split.Value /= 11 or else Decl_View.N + Index_Name.N /= 7
+        or else Model.Native_Count (16#4000_0000_0000_0000#) /= 16#8000_0000_0000_0000# then
         raise Program_Error;
     end if;
     begin raise Model.Failure; exception when Model.Failure => null; end;
@@ -147,8 +158,9 @@ end Client;''')
     command = [args.ada, '--no-stdlib', '-v', '-D', client_objects, '-o', target, source]
     built = run(command, environment)
     run([target], environment, expected='source-free\n')
-    if 'model uses a compiled semantic interface' not in built.stderr:
-        raise RuntimeError('driver did not reuse the compiled library')
+    for unit in ('model', 'interfaces', 'interfaces-c'):
+        if f'{unit} uses a compiled semantic interface' not in built.stderr:
+            raise RuntimeError(f'driver did not reuse the compiled semantic interface for {unit}')
     # This client has a full private representation, default expressions,
     # overloads, tagged primitives, generic body/subunit replay and bundle aliases.
     run([args.adac, '--no-stdlib', '-c', '-I', package, '-D', work / 'frontend', source], environment)

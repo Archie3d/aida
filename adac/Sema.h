@@ -94,6 +94,11 @@ private:
     void analyzeSubprogramBody(SubprogramBody* body, Scope* scope);
     void analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope);
     void analyzePragma(PragmaDecl* decl, Scope* scope);
+    void analyzeInterfacesIntrinsic(PragmaDecl* decl, Scope* scope, Symbol* target);
+    Type* interfacesCTargetType(const std::string& lower, Scope* scope, const SourceLocation& location);
+    bool declareUnavailableLongDouble(TypeDecl* decl, Scope* scope);
+    void setInterfacesCCharacterConvention(Type* type, const TypeDecl* decl, Scope* scope);
+    bool checkAvailableType(const Type* type, const SourceLocation& location);
     void analyzeConcurrentPragmas(TypeDecl* decl, Scope* scope);
 
     // SemaPackages.cpp
@@ -403,6 +408,7 @@ private:
     Type* m_numberBaseType = nullptr;
     Type* m_typeSetType = nullptr;
     Type* m_addressType = nullptr;
+    Type* m_unavailableLongDouble = nullptr;
     Type* m_tagType = nullptr;
     Type* m_exceptionOccurrenceType = nullptr;
     Type* m_exceptionIdType = nullptr;

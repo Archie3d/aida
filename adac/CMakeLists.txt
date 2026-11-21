@@ -1,9 +1,11 @@
 set(TARGET adac)
 
 add_executable(${TARGET})
+target_compile_features(${TARGET} PRIVATE c_std_11)
 
 target_sources(${TARGET}
     PRIVATE
+        ${CMAKE_SOURCE_DIR}/common/CAbiFacts.c
         ${CMAKE_SOURCE_DIR}/support/Artifacts.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Ast.cpp
@@ -28,6 +30,7 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/Type.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Scope.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/Sema.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaInterfaces.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaLimited.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaAccess.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaProtected.cpp
