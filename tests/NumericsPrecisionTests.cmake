@@ -15,6 +15,7 @@ foreach(bits IN ITEMS 32 64)
             -DWORKDIR=${ADA_TEST_WORK_DIR}/numerics${bits}
             -DBITS=${bits}
             -DSEPARATE_LIBM=${NUMERICS_SEPARATE_LIBM}
+            -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunNumericsPrecision.cmake
     )
 endforeach()

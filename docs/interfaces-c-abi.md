@@ -291,6 +291,12 @@ array parameters, tagged record parameters, composite and anonymous access
 results, pointers to array objects, and Ada closure parameters, are diagnosed
 before code generation.
 Imports of reserved `__ada_` symbols use the compiler-runtime profiles.
+For example, directory and environment helpers receive Ada string buffers and
+lengths, and return strings through Ada result descriptors. Elementary math
+wrappers use `Interfaces.C.C_float` and `Interfaces.C.double` for the C scalar
+parameters and results of their runtime hooks. The direct libc imports in
+`Interfaces.C.Strings` use `chars_ptr` and `size_t` for character pointers and
+byte counts, with `System.Address` for the `memmove` destination.
 
 `host.interfaces_native_calls` links a C helper in whole and per-unit builds
 and verifies all four character layouts, mixed arguments, pointer results,
