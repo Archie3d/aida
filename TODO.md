@@ -22,13 +22,14 @@ use signed 64-bit descriptors, and floating point stops at binary64. The shared
 runtime-call path also passes array lengths, so it cannot directly serve C array
 parameters. Complete the following in dependency order:
 
-- [ ] **Target contract and ABI probes.** Record C sizes, alignments,
+- [x] **Target contract and ABI probes.** Record C sizes, alignments,
   signedness and floating formats for each supported target, including LP64
   versus Windows LLP64, `wchar_t`, `size_t` and `ptrdiff_t`. Probe with the target
   C compiler; do not infer a cross-target ABI from the build host. Decide how
   to support native `long double` without changing QBE; diagnose unsupported
   formats rather than silently aliasing them to `double`. Record package and
-  target completion criteria before implementation.
+  target completion criteria before implementation. [Contract and probe
+  evidence](docs/interfaces-c-abi.md).
 - [ ] **Representation prerequisites.** Add exact-width signed/unsigned
   storage and correct loads, stores, conversions and argument/result extension.
   Resolve full-width modular array indices for `size_t` without truncating upper

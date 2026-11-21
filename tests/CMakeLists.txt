@@ -3060,7 +3060,8 @@ set_tests_properties(runtime.legalityaudit_modes PROPERTIES TIMEOUT 60)
 # each native runner, including MSYS2's LLP64 data model.
 add_executable(host_paths_test host/PathsTest.cpp)
 add_test(NAME host.paths COMMAND host_paths_test)
-add_executable(host_abi_report host/AbiReport.c)
+add_executable(host_abi_report host/AbiReport.c host/CAbiFacts.c)
+target_compile_features(host_abi_report PRIVATE c_std_11)
 add_test(NAME host.abi_layout COMMAND host_abi_report)
 add_determinism_test(hostabi SOURCE driver/hostabi.adb)
 add_test(NAME host.abi_modes
