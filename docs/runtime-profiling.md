@@ -88,7 +88,7 @@ suite: original/long kernels, startup, small-registry/LIFO throughput and
 then confirm on native CI. This diagnostic study does not replace those checks.
 Conservative proof of when lexical masters may be omitted is a separate target.
 
-[Complete reports](host-performance-runtime-profile.json) retain both studies,
+[Complete reports](evidence/host-performance-runtime-profile.json) retain both studies,
 sampling failures, the assembly entry excerpt, all samples, input/build/object/
 executable hashes, census predicates, order and dispersion. Thirteen Python
 protocol controls and both host protocol CTests pass; production compiler/runtime
@@ -112,20 +112,20 @@ only diagnostic copies. There is no arbitrary-source option. Call-signature and 
 on unexpected runtime/QBE shapes rather than silently changing the experiment.
 
 The selected entry-path repair now has
-[local correctness, assembly and matched production measurements](host-validation.md#empty-finalization-entry-path).
+[matched production measurements and validation](evidence/host-performance-finalization-entry.json).
 It reduces long allocation about 20% and 32-live LIFO throughput about 24%; the
 benchmark-only 27% guard result remains separate.
-[Native CI confirmation](host-performance-finalization-entry-ci.json) now passes
+[Native CI confirmation](evidence/host-performance-finalization-entry-ci.json) now passes
 all three hosts; historical block/allocation gaps remain. Conservative proof of
 empty lexical-master lowering is the next investigation.
 
 The lexical-block investigation now has a
 [conservative observation proof](lexical-master-elision.md) and
-[matched production validation](host-validation.md#conservative-lexical-block-master-elision).
+[matched production validation](evidence/host-performance-block-masters.json).
 Long block time improves about 35% locally; source/unknown calls and managed,
 accessibility and tasking paths retain masters. This does not enable general
 benchmark-style master omission.
-[Native confirmation](host-performance-block-masters-ci.json) now passes all three
+[Native confirmation](evidence/host-performance-block-masters-ci.json) now passes all three
 hosts; runner CPU changes and historical performance gaps remain explicit limits.
 
 The following [helper/allocation study](helper-profiling.md) adds a pinned-corpus

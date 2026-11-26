@@ -54,8 +54,8 @@ Unicode name instead of the escaped linker spelling.
 pinned UnicodeData-4.0.0.txt and SpecialCasing-4.0.0.txt files. Input SHA-256s are
 in the generated header; the inputs are available from the official
 [Unicode 4.0 update directory](https://www.unicode.org/Public/4.0-Update/).
-Builds and tests need no network. Redistribution terms are in
-[UNICODE-LICENSE.txt](../common/UNICODE-LICENSE.txt).
+Builds and tests need no network. Unicode publishes its data-file terms and
+licensing information. [Unicode terms of use](https://www.unicode.org/copyright.html).
 
 ## Literals, overloads and conversions
 

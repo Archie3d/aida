@@ -1,6 +1,6 @@
 # Finalization registration scaling
 
-The IDE reproducer retains unrelated integer allocations, then performs 2,000
+The benchmark retains unrelated integer allocations, then performs 2,000
 identical temporary `Unbounded_String` operations. Previously, every registration
 searched the complete allocation registry to decide whether its chain belonged
 to a heap allocation. This made fixed temporary work linear in the live heap.
@@ -40,7 +40,7 @@ build/ada/ada --force tests/benchmarks/finalizationscaling.adb -o /tmp/finalizat
 Each run must print `Checksum: 12000`. Timing covers only temporary-string work,
 excluding retained allocation creation and collection cleanup. Timing is manual;
 routine CI checks ownership and cleanup without machine-dependent deadlines.
-The [matched samples](finalization-scaling-measurements.json) compare the same
+The [matched samples](evidence/finalization-scaling-measurements.json) compare the same
 Release compiler and runtime archive members, replacing only `adart.c.o` with
 the pre-fix source for the baseline.
 

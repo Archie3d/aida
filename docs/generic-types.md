@@ -705,9 +705,8 @@ eight harness blockers and 25 ungraded B probes.
 LeakSanitizer is unavailable on this host; QBE-generated Ada memory accesses
 remain uninstrumented.
 
-The historical scope and completion criteria are preserved in
-[the Phase 6g archive](roadmap-history.md#6g-generics). The longer checklist unpacks the
-original five commitments rather than adding new feature families:
+The Phase 6g work covered five areas.
+[Roadmap history](roadmap-history.md#6g-generics).
 
 | Original commitment | Completion and boundaries |
 | --- | --- |

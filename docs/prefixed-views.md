@@ -78,7 +78,7 @@ passed 1,967/1,968: C651001 encountered a stale compiled-unit digest while the
 compiler was being rebuilt; the affected case and the focused feature selection
 were rerun after the final build. All 82 selected ASan/UBSan and 43 distinct selected TSan
 checks passed, with the final receiver-layout cases rerun on each final compiler.
-The [archived report](functional-views-validation.json) records each run, source
+The [archived report](evidence/functional-views-validation.json) records each run, source
 and binary hashes, the stale-build limit and ACATS provenance. Sanitizer coverage
 retains the [existing instrumentation limits](robustness.md). No new profiling
 measurements or native-host claims are included.

@@ -2,35 +2,34 @@
 
 ![Build](https://github.com/Archie3d/aida/actions/workflows/build-and-test.yml/badge.svg)
 
-AIDA is an experimental Ada compiler written in C++ that translates a substantial
-Ada subset into native programs. It uses [QBE](https://c9x.me/compile/) for code
-generation and includes a C runtime and predefined Ada packages. It is not a
-full Ada implementation.
+AIDA is an experimental native compiler for a substantial subset of Ada 2005.
+It uses a C++ frontend, the [QBE backend](https://c9x.me/compile/), a C runtime
+and predefined Ada packages. See the [coverage matrix](docs/ada2005-coverage.md)
+for supported behavior and known gaps.
 
-## Build
+## Build and install
 
-Requirements: CMake 3.20 or newer, a C++23 compiler, a C11 compiler, and `make`
-(used to build QBE).
-
-Build with CMake on macOS (Apple silicon) or Linux (amd64 or arm64).
+Build on macOS arm64, Linux amd64 or arm64, or Windows amd64 with MSYS2 UCRT64.
+You need CMake 3.20 or newer, a C++23 compiler, a C11 compiler and `make` for
+QBE. On Windows use the UCRT64 shell with MinGW-w64 GCC and CMake.
 
 ```sh
+git submodule update --init --recursive
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ctest --test-dir build --output-on-failure
+cmake --install build --prefix /path/to/install
 ```
 
-On Windows amd64, use an MSYS2 UCRT64 shell with MinGW-w64 GCC, make, and CMake installed.
+Add the installation's `bin` directory to `PATH`. The driver targets its build
+host and toolchain. On MSYS2, add `-G 'MinGW Makefiles'` to the configure
+command. [Native test matrix and ABI coverage](docs/host-validation.md).
 
-The compiler produces programs for the build host/toolchain; cross-compilation
-is not currently exposed as a supported driver option. To install, run
-`cmake --install build --prefix <prefix>`, then put `<prefix>/bin` on `PATH`.
-[Host validation](docs/host-validation.md) records native test results and ABI layouts.
+## Compile and run
 
-## Use example
+Save this as `hello.adb`.
 
 ```ada
--- hello.adb
 with Ada.Text_IO;
 
 procedure Hello is
@@ -39,183 +38,32 @@ begin
 end Hello;
 ```
 
-Compile and run it with the installed driver:
-
 ```sh
 ada -o hello hello.adb
 ./hello
 ```
 
-`ada --help` lists driver options. The driver resolves dependencies, invokes
-the frontend, QBE, and the system C compiler, then links the runtime. For
-frontend-only use, `adac --help` describes its options. Executable builds keep
-per-unit artifacts in `<program>.adaobj` by default. Unchanged file builds skip
-all tool invocations; `--force` bypasses that shortcut. `ada --clean -o program`
-or `ada --clean -D directory` removes artifacts without needing sources
-([build and cleanup contract](docs/driver-builds.md)).
-Shared build directories follow the [artifact publication rules](docs/artifact-publication.md).
-Library roots in `ADA_INCLUDE_PATH` support mixed [flat and hierarchical unit
-source layouts](docs/unit-source-layouts.md) and [compiled interfaces](docs/semantic-interfaces.md).
+`ada --help` lists driver options. Use `adac --help` for frontend-only options.
+The driver resolves Ada dependencies, binds elaboration order, invokes the
+frontend and QBE, and links with the system C toolchain. Executable builds keep
+per-unit artifacts in `<program>.adaobj` by default. See the
+[driver documentation](docs/driver-builds.md) for incremental builds and cleanup.
 
-Pass external C objects and static libraries directly when building an executable:
+Link C objects and static libraries by passing them to the driver. Declare their
+entry points with `pragma Import`. See the [C ABI contract](docs/interfaces-c-abi.md)
+for supported profiles and target limits.
 
 ```sh
 cc -c helper.c -o helper.o
-ada -o program main.adb helper.o libexample.a
+ada -o program main.adb helper.o
 ```
 
-Declare C entry points with `pragma Import (C, Ada_Name, "c_symbol")`.
-External `.o`/`.a` inputs retain their order after the Ada objects and before the
-runtime; put archives after objects or archives that use them. The last Ada
-source selects the main program and default output name. Compilation requires at
-least one Ada source; `.o`/`.a` inputs cannot be used with `-S` or `--emit-ir`.
-Use `--source file.a` for Ada sources with an archive extension (such as ACATS).
-For manual linking, `ada -S -o program.s main.adb` produces whole-program
-assembly; assemble it with `cc -c` and link with the AIDA runtime and its system
-dependencies (`ada -v` shows the toolchain's link command).
+## Documentation
 
-## Architecture
-
-The repository consists of the following components:
-
-- `ada/`: driver, dependency scanning, binding, toolchain invocation, and cache.
-- `adac/`: C++ frontend: lexer, parser, semantic analysis, and QBE IR emitter.
-- `qbe/`: bundled QBE backend, translating its IR to native assembly.
-- `runtime/`: C runtime plus predefined Ada packages (in `runtime/ada/`).
-- `common/`: shared C-compatible utilities and data.
-- `support/`: shared C++ utilities for the compiler tools.
-- `tests/`: compiler and runtime regressions ([Ada fixture guide](tests/ada/README.md)).
-
-The compilation path is Ada source -> AIDA frontend -> QBE IR -> QBE assembly -> system assembler/linker, with the AIDA runtime linked into the executable.
-The [lowering decision](docs/lowering-decision.md) retains direct QBE emission
-and records the representation and cleanup refactors required by later phases.
-
-The [ACATS backfill baseline](docs/acats-baseline.md) records passes and gaps;
-[location-aware B-test grading](docs/acats-grading.md) checks legality diagnostics and legal controls
-([discriminant, access and attribute audit](docs/legality-audit.md)).
-
-## Features and limits
-
-AIDA targets Ada 2005 and currently implements a substantial subset. Full
-conformance and Specialized Needs Annex support are not claimed.
-
-Supported:
-
-- Library and nested packages, procedures, functions
-- Extended returns, limited records and build-in-place results ([limits](docs/returns.md))
-- Package elaboration blocks with local storage, captures and scoped cleanup
-- Control flow, exceptions and names qualified by enclosing declarations ([contract](docs/enclosing-names.md))
-- Case selectors resolve overloaded calls using the discrete result type ([rules](docs/case-selectors.md))
-- Integer, floating-point, fixed-point, modular, array and record types
-- Ordinary fixed point with wider binary scales, Small clauses and dynamic local bounds ([limits](docs/fixed-point.md))
-- Decimal fixed point with 1–18 digits, exact scaling, Round and Decimal_IO ([limits](docs/decimal-fixed-point.md))
-- Modular types through `2 ** 64`, modular generics, `'Mod` and `Modular_IO` ([limits](docs/modular-types.md))
-- Exact bounded named-number arithmetic ([limits](docs/static-arithmetic.md))
-- Checked binary32/64 arithmetic, integer powers, floating `'Value` and Ada 2005
-  floating attributes, including rounding and machine/model properties ([floating model](docs/floating-point.md))
-- Float and discrete random generators, reproducible resets and saved states ([algorithm and format](docs/random.md))
-- Arrays with 64-bit bounds, lengths and byte strides, anonymous object declarations,
-  library runtime bounds and generic objects; indices must be all constrained
-  or all boxed (`range <>`) ([descriptor ABI](docs/array-descriptors.md))
-- Runtime-sized array components and allocators, Size and array streams ([limits](docs/runtime-composites.md))
-- One-dimensional concatenation with scalar, composite, private and controlled components
-- Checked record and array aggregates, sliding, inferred bounds and `<>` defaults ([limits](docs/aggregate-defaults.md));
-  aggregate overload resolution respects private views
-- Nested variants, default and runtime discriminants and per-object array components ([limits](docs/runtime-discriminants.md))
-- Array conversions and writable parameter views (identical component subtypes required)
-- Derived-type conversions and inherited profiles with checked constraints
-- Scalar `'Value` uses the base range; receiving contexts check subtype constraints
-- Derived Boolean operations; Latin-1, Wide and Wide_Wide character/string literals,
-  UTF-8 source and Unicode identifiers, scalar text attributes and character conversions
-  ([contract](docs/wide-foundation.md))
-- `Standard.ASCII` and `System` configuration, numeric, address, bit-order and priority declarations ([choices](docs/standard-system.md));
-  `System.Storage_Elements` byte storage and address arithmetic ([contract](docs/storage-elements.md));
-  `Address_To_Access_Conversions` for definite fixed-layout objects ([limits](docs/address-conversions.md));
-  `Ada.Storage_IO` checked representation buffers ([format and limits](docs/storage-io.md));
-  `System.Storage_Pools` user-defined allocation/deallocation ([policy and limits](docs/storage-pools.md))
-- Scalar attributes and captured runtime bounds, including library and real subtypes ([contract](docs/runtime-scalars.md))
-- Generics with private/indefinite, discriminated, derived, tagged, interface and access formals ([limits](docs/generic-types.md));
-  abstract formals, null defaults, attribute/literal actuals, nonstatic array matching,
-  checked contracts, access and limited `in` objects, formal packages with partial actual lists and class-wide derived actuals with dispatch wrappers;
-  tagged dispatching and prefixed calls ([limits](docs/prefixed-calls.md));
-  tag-selected constructors ([contract](docs/dispatching-constructors.md))
-- Named and anonymous object access, access-to-constant, accessibility checks,
-  nested/protected callbacks and coextensions ([limits](docs/anonymous-access.md));
-  object [`Unchecked_Access`](docs/unchecked-access.md)
-- Imported Ada/C and inherited tagged callbacks ([limits](docs/subprogram-access.md));
-  `Interfaces`, `Interfaces.C`, `Interfaces.C.Strings` and `Interfaces.C.Pointers`
-  ([C ABI and package limits](docs/interfaces-c-abi.md))
-- Null exclusions with checked initialization, calls and conversions
-  ([limits](docs/null-exclusions.md))
-- Primitive inheritance, overriding checks, operator visibility and dispatch through private overrides ([operators](docs/operator-visibility.md))
-- Abstract subprograms, required overrides and dispatching calls ([limits](docs/abstract-subprograms.md))
-- Overriding indicators, null procedures and controlling access results
-  ([contract](docs/overriding-null-procedures.md))
-- Controlled types, checked assignment and finalization ([contract](docs/controlled-assignment.md))
-- Tasks, grouped activation, entries/families, rendezvous and task identity/status
-- Selective accept, timed/conditional calls and asynchronous select ([limits](docs/select-statements.md))
-- Requeue and task abort with deferred cleanup ([contract](docs/requeue-abort.md))
-- Protected types and single objects with procedures, functions and guarded entries
-- `Duration`, relative/absolute delays and monotonic `Ada.Real_Time`
-- Scalar `Atomic` and `Volatile` objects and types
-- Size, alignment, enumeration and record clauses, including packed and
-  unaligned discrete fields and changed layouts on plain untagged derived
-  records. Freezing checks cover callable/tagged/generic dependencies;
-  clauses can follow deferred defaults and unrelated declarations
-  ([limits](docs/representation-clauses.md))
-- Narrow/wide string maps, constants, callbacks, hashing and fixed/bounded/unbounded facilities
-  ([wide strings](docs/wide-strings.md)); Ada 2005 containers with cursors, callbacks and sorting ([limits](docs/library-collections.md))
-- UTC `Ada.Calendar` with arithmetic, formatting and timezone children ([contract](docs/calendar.md)); directories and environment variables ([host behavior](docs/host-library.md))
-- Expanded/wide exception names, occurrence results and streams ([contract](docs/exceptions-library.md))
-- Narrow and wide text I/O, nested numeric/enumeration generics and scoped file cleanup
-  ([narrow](docs/text-io.md), [wide](docs/wide-text-io.md)); bounded/unbounded string adapters
-  and type-aware streams ([streaming](docs/streaming.md)); positioned stream-file I/O
-  with mode changes and flush ([contract](docs/stream-io.md)), plus narrow/wide
-  text stream views ([contract](docs/text-streams.md))
-- Limited/private context clauses and incomplete views ([limits](docs/context-views.md))
-- Separate compilation and incremental builds, including subprogram/package
-  subunits ([limits](docs/subunits.md))
-- Elaboration checks and `Elaborate`, `Elaborate_All`, `Elaborate_Body` pragmas
-- `Pure`, `Preelaborate` and `Preelaborable_Initialization` enforcement
-  ([contract](docs/package-categorization.md))
-- Assertions, check policies and `No_Return` ([contract](docs/pragmas-and-checks.md))
-
-Task/protected discriminants, bound operation views and named protected callbacks
-are supported ([contract](docs/concurrent-callable-views.md)), along with
-[synchronized, task and protected interfaces](docs/concurrent-interfaces.md).
-Limited tagged records can contain [task and protected components](docs/tagged-concurrent-components.md).
-
-**Selected limitations**
-
-- Variant records containing task or protected objects, untagged derivation
-  of types containing them, and discriminant-dependent arrays with task or
-  protected elements ([concurrent component limits](docs/tagged-concurrent-components.md))
-- Task and protected body subunits ([subunit limits](docs/subunits.md))
-- Untagged non-array conversions as `out` or `in out` actuals, new discriminants
-  on untagged derivations, and derivation from uncompleted untagged private views
-  ([type and view limits](docs/tagged-discriminants.md))
-- `pragma Export`, Ada-defined C callbacks, imported objects, by-value C
-  records, variadic imports and C `long double` formats beyond binary64
-  ([C ABI limits](docs/interfaces-c-abi.md#integration-audit))
-- `Bit_Order` clauses, positive access-type `Storage_Size` clauses and
-  `pragma Restrictions` ([representation](docs/representation-clauses.md),
-  [storage pools](docs/storage-pools.md), [pragmas](docs/pragmas-and-checks.md))
-- `Ada.Unchecked_Conversion` is limited to discrete scalars and packed Boolean
-  arrays ([conversion rules](docs/packed-arrays.md#unchecked_conversion))
-
-Access-type collections support allocation and deallocation across tasks, with
-master-based lifetime and finalization ([contract](docs/shared-collections.md)).
-
-[Static arithmetic](docs/static-arithmetic.md) uses checked exact evaluation,
-bounded to 127-bit integer/rational magnitudes and 64-bit scaled fixed-point
-intermediates. Exceeding these limits is diagnosed; arbitrary precision remains
-unsupported.
-
-See [TODO.md](TODO.md) for the roadmap and `tests/` for executable examples
-and expected diagnostics. The [Ada 2005 coverage matrix](docs/ada2005-coverage.md)
-tracks supported behavior and known gaps by RM clause and predefined unit.
-[Robustness validation](docs/robustness.md) covers deadlines, reproducible fuzzing
-and sanitizer presets, including generated Ada access checks with TSan. The
-[selected ACATS suite](tests/acats/README.md) runs with
-`ctest --test-dir build -L acats --output-on-failure`, including recorded expected
-failures. This selection does not establish conformance.
+- [Documentation index](docs/README.md) for compiler usage, language and runtime
+  contracts, design notes and validation.
+- [Roadmap](TODO.md) for priorities and completed phases.
+- [Test fixtures](tests/ada/README.md) for runnable examples and expected
+  diagnostics.
+- [ACATS guide](tests/acats/README.md) for running the selected suite. The results
+  apply to the documented subset.

@@ -60,7 +60,7 @@ Scaling controls range from 0.9919 to 1.0185, and throughput controls from 0.990
 to 1.0007. This change does not address allocation overhead or establish the
 historical no-slowdown goal.
 
-[Complete evidence](host-performance-inline-zeroing.json) preserves every sample,
+[Complete evidence](evidence/host-performance-inline-zeroing.json) preserves every sample,
 execution order, dispersion, component hash, the production patch, test sources
 and validation outcomes. The earlier [helper study](helper-profiling.md) measured
 the opportunity using fixed QBE probes; the table above measures the production

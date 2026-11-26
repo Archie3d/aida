@@ -1,22 +1,16 @@
-# Predefined environment audit (Ada 2005)
+# Predefined environment inventory
 
-This Phase 8 increment audits the current environment and repairs defects in
-supported APIs, as agreed for its scope. It does not implement the wholly
-missing library families. Their existing gaps stay explicit in the coverage
-matrix and the checked [inventory](../tests/predefined/inventory.json).
+The [checked inventory](../tests/predefined/inventory.json) covers 129 source
+specifications and builtin Standard. System is an analyzed source specification
+and uses the compiler's canonical Address bootstrap. The inventory check
+compiles an independent import probe for every listed unit, accounts for every
+runtime specification and checks normal missing-unit diagnostics.
 
-## Inventory and boundaries
+The [coverage matrix](ada2005-coverage.md#predefined-unit-inventory) records
+supported APIs and known gaps for core, compatibility, annex and extension
+units. Import probes establish availability for the inventoried units.
 
-The original audit named 109 source specifications and the two compiler builtins
-Standard/System. After [Storage_Elements](storage-elements.md), the current
-inventory covers 129 source specifications plus builtin Standard: 130 resolving
-units, with no absent units. System is now an analyzed source specification,
-retaining only its canonical Address bootstrap in the compiler. Its baseline check compiles an independent import probe for each resolving
-unit, checks every runtime spec is accounted for, and verifies exact normal
-missing-unit diagnostics.
-Resolving a unit is not a claim that its complete API is implemented. Core and
-compatibility units, selected annex subsets and implementation extensions are
-identified separately.
+## Package contracts
 
 [Interfaces and Interfaces.C](interfaces-c-abi.md#scalar-packages) now resolve.
 `Interfaces.C` includes scalars and [character arrays and conversions](interfaces-c-abi.md#character-arrays-and-conversions).
@@ -57,13 +51,9 @@ surfaces, including nontruncating reset/open and atomic positioned transfers.
 All 22 original API gaps have executable controls. The audit's
 original counts below describe its historical starting state.
 
-Ada 2012 additions are outside this language target. Specialized-needs annex
-facilities retain their separate matrix scope, including full tasking/priority
-services in Phase 9. Facilities identified by this audit were subsequently
-implemented for their documented target choices and restrictions. The
-[archived Phase 8 checklist](roadmap-history.md#predefined-library-implementation)
-preserves the dependency order and per-family completion criteria; current
-restrictions remain in the coverage matrix and feature contracts.
+The [roadmap history](roadmap-history.md#predefined-library-implementation)
+summarizes the order of the Phase 8 library work. The [annex follow-up goals](selected-annex-followups.md)
+cover additional facilities and profiles.
 
 ## Supported API repairs
 
@@ -121,7 +111,10 @@ pipe/control-byte and wide UTF-8 tests remain part of the focused evidence.
 Native Windows console/MSYS2 execution and other targets remain in the existing
 host-validation item; a POSIX pseudo-terminal pass is not evidence for them.
 
-## Validation
+## Phase 8 validation
+
+The following runs describe the original API audit. The inventory at the top of
+this page reflects the subsequent package additions.
 
 `predefinedprofiles` exercises all corrected profiles, generic matching,
 renamings, floating/fixed Tick contexts and delay, modular byte operations,

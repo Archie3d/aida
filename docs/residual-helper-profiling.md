@@ -65,7 +65,7 @@ census matches the preceding study; these are source entries, not CPU percentage
 
 ## Controls retained
 
-The full [21-case production comparison](host-performance-inline-zeroing.json)
+The full [21-case production comparison](evidence/host-performance-inline-zeroing.json)
 from the preceding repair remains the control set: 11 pairs, short/long kernels,
 small/LIFO cases, 32/512/4,096-live scaling and 32-live throughput. Its current
 compiler/backend/runtime hashes match this study exactly. It is retained as
@@ -95,7 +95,7 @@ smaller production change than general variable-index lowering. Validate the
 actual repair with correctness/sanitizer controls and a matched 21-case production
 comparison before attributing these diagnostic gains to the compiler.
 
-[Complete evidence](host-performance-residual-helpers.json) preserves both full
+[Complete evidence](evidence/host-performance-residual-helpers.json) preserves both full
 studies, the smoke run, collector sources, failure controls, all hashes and the
 retained 21-case report. Native checkpoints remain deferred while work continues
 locally. Historical no-slowdown remains open.

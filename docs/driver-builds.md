@@ -1,9 +1,30 @@
-# Driver no-op builds and cleanup
+# Driver builds and cleanup
 
 An unchanged `ada` invocation returns before launching the frontend, QBE or C
 compiler: there is no scan, bind, native compilation or link. `-v` reports
 `is up to date (no-op build)`. This applies to executables and file outputs from
 `--emit-ir` and `-S`. IR directed to standard output is emitted every time.
+
+## Inputs and output modes
+
+The last Ada source selects the main program and default output name.
+Executable builds store per-unit artifacts in `<program>.adaobj` unless
+`-D` selects another directory. The driver searches library roots in
+`ADA_INCLUDE_PATH` for [Ada sources](unit-source-layouts.md) and
+[compiled interfaces](semantic-interfaces.md).
+
+Pass external `.o` and `.a` files to link them into an executable. Declare
+C entry points with `pragma Import (C, Ada_Name, "c_symbol")`. The driver
+keeps external inputs in their supplied order after the Ada objects and
+before the runtime. Put archives after their users. At least one Ada source
+is required. Use `--source file.a` for Ada source files with an archive
+extension, as used in ACATS.
+
+`--emit-ir` stops at QBE IR. `ada -S -o program.s main.adb` emits
+whole-program assembly. Assemble it with `cc -c` and link with the AIDA
+runtime and required system libraries. Use `ada -v` on an executable build
+to see the toolchain's link command. External object and archive inputs
+require executable output. [C ABI contract](interfaces-c-abi.md).
 
 ## No-op contract
 

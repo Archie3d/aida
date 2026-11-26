@@ -113,7 +113,7 @@ all other mutex operations. Full compiler and sanitizer suites were not repeated
 for this diagnostic-tool-only change. No GitHub profiling run is needed for this
 local diagnosis; native profiling remains a manual milestone checkpoint.
 
-[Complete evidence](host-performance-helper-profile.json) retains every trial,
+[Complete evidence](evidence/host-performance-helper-profile.json) retains every trial,
 order, dispersion, input/build/object/executable hash, census predicate, fault
 outcome, independent zero-preservation control and the compatibility smoke
 report. The initial seven-block-variant study is retained separately as exploratory

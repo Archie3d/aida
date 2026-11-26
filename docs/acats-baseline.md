@@ -1,4 +1,4 @@
-# ACATS completed-feature baseline — refreshed 2026-11-12
+# ACATS completed-feature baseline
 
 This backfill adds **161 unchanged upstream cases**: 135 C-tests and 26 B-test
 probes, alongside the strict focused selection. The recorded host is Darwin
@@ -29,233 +29,6 @@ the counts and observations from those increments.
 The raw B observations stay ungraded for historical comparison. The independent
 [location/group-aware grader](acats-grading.md) records **26 B PASS (25 original foundations, one local foundation adapter)**,
 with separate legal controls. Only complete B passes join the regular ACATS label.
-
-## Non-tasking legality increment (Phase 8)
-
-Unchanged B33101A/B34001B/B34002B/B37004A/B460001/BC60001 now grade PASS.
-The [audit](legality-audit.md) distinguishes compiler repairs from diagnostic
-and location review. The raw cohort still contains 26 rejected B observations;
-only these six diagnostic streams change, with all C outcomes unchanged and all
-149 upstream hashes intact. The independent grading report has 17 PASS and
-nine FAIL; the nine blocked full sources retain P9 prerequisite owners.
-
-## Support-protocol increment (Phase 8)
-
-C761004 now passes unchanged after TCTouch Flush/Validate support. C940005 and
-C940010 pass unchanged with local ImpDef task-progress delays. The remaining
-142 raw observations and all 149 upstream hashes are unchanged. The detailed
-[grading contract, failed cases and support boundaries](acats-grading.md) distinguish
-harness completion from the language defects and unsupported prerequisites
-exposed by 15 failed B-tests. Older increment counts below describe their
-historical snapshots.
-
-## Current-subset adoption audit (Phase 8)
-
-The [bounded adoption review](acats-adoption.md) adds 16 sources selected before
-probing: seven Size/mapping/generic cases, five Ada 2005 null-exclusion cases and
-four formal-subprogram matching/default/literal cases. Fifteen execute unchanged
-as PASS. CC3605A stops at line 248's access-to-array subtype constraint, the
-existing limitation also recorded for C761010; it remains a baseline-only exact
-rejection observation. No generic-profile conformance pass is inferred from its
-partial source. The original 129 observations are unchanged, and the expanded
-145-case snapshot validates all 149 source hashes. No compiler/runtime or
-support-adapter changes were made.
-
-## Access-subtype record constraints (Phase 8)
-
-C37003A and C37006A now execute unchanged as PASS. Designated-record
-constraints reuse captured discriminant values and check non-null access values
-at value boundaries, including component initialization and conversion.
-[Contract and local cross-unit/tasking coverage](access-subtype-constraints.md).
-All other outcomes remain unchanged; B37004A has updated, ungraded diagnostics
-where its previously unsupported access constraint is now analyzed.
-
-## Discrete-range observations (Phase 8)
-
-C35003A, C36104A/B, C36180A, C37002A, C41207A and C43204A now execute
-unchanged as PASS. They cover range attributes, explicit subtype ranges,
-null-range compatibility, declaration-time checks and call/qualified bounds.
-C3A2003 passes separately in the focused selection. [Contract](discrete-ranges.md).
-
-The complete 129-case refresh also observes the already available REPORT
-adapter: C41104A, C54A07A and C760011 pass; C35502C/C64005C now reach missing
-ASCII declarations. C940005/C940010 reach missing services in the partial
-ImpDef unit, recorded as compile rejections. No adapter or predefined-library
-implementation changed in this increment. B-probes remain ungraded.
-
-## Interface-formal observations (Phase 6g)
-
-B394A01/B394A02 and F394A00 add two unchanged Ada 2005 legality probes for
-progenitor kinds and limited descendants, including generic formals. The whole
-sources reject on unsupported concurrent syntax as well, so their observations
-remain ungraded, with exact diagnostics under the baseline label. They are not
-legality passes. All original 123 observations, including the 79 executable
-passes, are unchanged. Local `genericinterface*` covers the isolated legality
-rules, legal controls, dispatch, category matching, callbacks and nested/library
-replay; existing C394002/C394003 retain their strict inheritance passes.
-
-Synchronized-derived-formal follow-up adds unchanged B394A03–B394A05 for task,
-protected and synchronized ancestry, including formal extensions. They remain
-ungraded because full sources also contain unsupported Phase 9 constructs.
-B394A02 loses two obsolete formal-syntax parser diagnostics; the other 124
-previous observations are unchanged. `genericsynchronized*` isolates the new
-static contracts, legal controls, tags/callbacks and nested/library replay.
-
-## Null-default observation (Phase 6g)
-
-BC60001 adds one unchanged Ada 2005 null-default legality source. Its frozen
-B_REJECTED_UNGRADED observation contains the four illegal function/abstract
-null-default syntax errors; parsing errors prevent semantic grading of the
-remaining legal and intrinsic-convention cases. Local `genericnull*` isolates
-those cases, including Access restrictions through aliases/forwarding. All 128
-previous observations were unchanged; at that increment the cohort had 79 PASS,
-16 compile rejections, eight harness blockers and 26 ungraded B observations.
-
-## Reviewed repairs
-
-Phase 6h retains all 129 observations unchanged. Its new strict executable
-C651001 selection lives alongside this baseline and checks nonreturning
-procedure completion. Assertion/check policies and their conservative check
-retention are documented in the [contract](pragmas-and-checks.md).
-
-Phase 6g promotes C393013, C640001 and C760010 to executable PASS, unchanged.
-C393013 runs the complete null-extension controlling-result scenario through
-generic and private extensions, including private overrides. C640001 exercises
-tagged generic callbacks and redispatch. C760010 verifies controlled lifetimes
-and explicit/implicit exception propagation through tagged private formals.
-C393013 now uses `acats.backfill_c393013`; its frozen-rejection probe is removed.
-C540001 now passes unchanged after enumeration-literal function actuals,
-expanded character names (`Pkg.'A'`) and static related-enumeration conversions.
-The complete case-expression scenario is registered as `acats.backfill_c540001`.
-It is the only changed observation at this increment: all other 128 observations
-remained unchanged; the cohort then had 80 executable passes.
-
-The Phase 6f backfill adds 16 C-tests from the same pinned archive, preserving
-all 18 imported files byte-for-byte, including the F392D00/F393A00 foundations.
-Fifteen initially passed unchanged and joined the normal suite: C394002/C394003 (limited and
-nonlimited interfaces), C393001/C393012/C393A02/C393A03/C393A06 (abstract
-operations and dispatch), C392004/C392010/C392011/C392D01/C392D02 (conversions,
-controlling parameters/results and private primitives), C391001/C391003
-(discriminated/local extensions) and C390011 (generic-instance tags).
-C390010 now also passes unchanged and joins the normal suite. Constrained
-class-wide views retain captured discriminant constraints and check access/value
-boundaries; parent and extension variants select independently, including
-`others`, and ancestor discriminants initialize after their child dependencies.
-`classwideconstraints` and `taggedvariantgroups` cover the repairs in whole/per-unit/
-deterministic modes with four workers. All original 106 observations remain
-unchanged at that milestone; the expanded cohort then had 76 executable passes.
-
-Before this backfill, the final Phase 6f interface milestone retained all 106 observations:
-60 executable passes, 18 legal-source rejections, eight support blockers and
-20 ungraded B observations. Its local interface scenarios are documented in the
-[interface contract](interfaces.md); no new upstream pass is inferred from them.
-
-The tagged/private-view milestone promotes unchanged C3A0007, C432001, C432004
-and C760009 to PASS. C760011 now reaches REPORT.Ident_Char (P8); C761010 gets
-past unknown-discriminant views and exposes access-subtype and dependent
-controlled-array restrictions. The cohort is now 60 PASS, 18 compile rejections,
-eight harness blockers and 20 ungraded B observations. Strict-selection
-C3A0009 and C761012 also pass unchanged; C3A0013 now executes as PASS
-after the Phase 7 range-attribute array-declaration prerequisite. See the
-[tagged/private-view contract](tagged-discriminants.md).
-
-The next 6f overriding/null/access-result milestone retains all 106 exact
-observations: 56 executable passes, 23 legal-source rejections, seven support
-blockers and 20 ungraded B observations. No additional case is promoted by this
-change; the snapshot's compiler fingerprint is refreshed. Focused execution and
-legality scenarios are documented in the
-[overriding/null-procedure contract](overriding-null-procedures.md).
-
-C460006 now passes unchanged after the first 6f item. Abstract operations use
-inherited dispatch slots, concrete types must override abstract obligations,
-and supported record extensions accept ordinary record aggregates. The case's
-view-conversion, object-renaming and assignment checks pass. `abstractsubprograms`,
-`abstractinheritance` and `abstract*errors` provide focused execution and legality
-controls. B840001 remains ungraded; three legal record-extension aggregates
-no longer produce unsupported-aggregate diagnostics.
-
-All five original executable failures now pass unchanged.
-
-C34001A/C34001D/C34002A now pass unchanged after the 6f-prelude repair:
-scalar `'Value` returns and checks `S'Base` (RM 3.5(53)), rather than the
-first subtype's static or captured bounds. `derivedscalaroperations` covers
-base-range operations, inherited constraints, conversions, receiving-context
-checks and four tasks in whole/per-unit/deterministic modes. The snapshot and
-strict ACATS selection include these three reviewed promotions.
-
-C761006 also passes unchanged after disjoint controlled assignment began
-adjusting the actual target directly (RM 7.6(21), 7.6.1(16)). Overlapping
-assignments retain owned snapshots. `controlledadjustment` checks component and
-parent failures, cleanup/recovery, overlapping slices, initialization and
-deallocation, including class-wide assignment and four tasks. Runtime ownership
-checks and the Ada regression pass with ASan/UBSan on the C runtime.
-
-C840001/C84008A/C84009A now pass after the operator-visibility repair.
-Predefined operators participate in scope hiding; expanded calls resolve
-implicit operators, and use type follows the type's identity through subtypes.
-`operatorvisibility` and `operator*visibilityerrors` cover private/body/child
-contexts, qualified calls, homographs and diagnostics in whole/per-unit/
-deterministic modes, with four tasks and compiler ASan/UBSan checks.
-
-B840001 remains ungraded. Additional missing-use diagnostics at lines 266, 270
-and 290 correspond to upstream ERROR markers; private-child legal controls
-remain accepted. This is not a substitute for the Phase 8 B-test grader.
-C730004 now also passes after the full-view limitedness repair described below.
-
-Legal-source rejections still need review: some hit explicit later roadmap
-features, while others expose missing behavior in completed areas.
-
-B36002A now produces 12 diagnostics for its mixed constrained/boxed index
-definitions, at the first mismatching index of each declaration (RM 3.6(2–6)).
-The shared parser check also covers anonymous arrays and generic formals.
-`arrayindexerrors` covers both orders, subtype marks, raw ranges, enumeration/
-Boolean indices, three dimensions and recovery; `arrayindexlegality` checks
-legal constrained/boxed definitions, runtime bounds, null arrays and generic
-instantiations in whole/per-unit/deterministic modes. Compiler ASan/UBSan
-checks pass. The B observation remains ungraded; no strict ACATS C-case is
-promoted by this legality repair.
-
-C83022A/C83024A and related C64004G/C64005A/C64005B now pass unchanged
-after enclosing-name lookup was repaired (RM 4.1.3(10–13)). `enclosingnames`
-and `enclosingnameerrors` cover hidden objects, parameters, defaults, nested
-blocks/loops, generic current instances, callable-prefix ambiguity and
-non-enclosing/value-use rejections, including captured frames and four tasks
-in whole/per-unit/deterministic modes. Compiler ASan/UBSan checks pass for
-these fixtures and all five unchanged upstream cases.
-C41103A now also passes after resolving array/function prefixes and preserving
-slice bounds, as described below. C54A07A and C64005C retain REPORT
-Ident_Char blockers; C64005C also needs the predefined ASCII package (P7/P8).
-Their changed diagnostics are recorded without claiming executable passes.
-
-C540002 now passes unchanged after selector resolution began applying its
-any-discrete-type context before binding (RM 5.4(4)). `caseselector` and
-`caseselectorerrors` cover direct/generic calls, discrete scalar categories,
-subtype preservation, single evaluation, private views and genuine ambiguity;
-choices do not supply selector context. Whole/per-unit/deterministic execution,
-four tasks and compiler ASan/UBSan checks pass.
-
-C49022C now passes unchanged after adding the mixed root real/integer
-multiplying profiles (RM 4.5.5(17)). Converted named numbers expose their
-universal numeric type (RM 3.3.2). `realnumbers` and `realnumbererrors` cover
-exact arithmetic, conversion boundaries, fixed contexts, forbidden profiles,
-static failures and evaluation limits in whole/per-unit/deterministic modes,
-with four tasks and compiler ASan/UBSan. The strict selection includes this
-reviewed promotion.
-
-C41103A/C41105A/C730004/C73002A now pass unchanged. Array-result prefixes
-participate in index/call overload resolution; nested slice indexing retains
-its own lower bound. Nested package bodies see enclosing body declarations
-without leaking them to clients. Concatenation/equality use a visible nonlimited
-full view. Visible partial-view discriminants and class-wide use-type marks are
-also repaired; C37006A and C760011 then retained independent prerequisites.
-Both now execute unchanged as PASS after their subsequent increments.
-`supportedrejections`/`supportedrejectionerrors` cover legal and rejection
-controls in whole/per-unit/deterministic modes, with four tasks and compiler
-ASan/UBSan. All four new passes join the strict selection.
-
-The [remaining-rejections audit](supported-rejections.md) records concrete
-prerequisites. Removing a prerequisite still requires rerunning the unchanged
-compound case before promotion.
 
 ## Coverage by area
 
@@ -288,23 +61,18 @@ be blocked before reaching the feature named in their objective.
 | task termination | 1 | 0 | 0 | 0 | 0 |
 | **Total** | 135 | 0 | 0 | 0 | 26 |
 
-## Follow-up order
+## Running and interpreting the baseline
 
-1. Validate target configuration on other supported hosts. All 26 selected B
-   grades now pass with the documented B394A01 foundation adapter; broader
-   interface and tasking conformance is not inferred.
-2. Retain native priority capability checks for CXD1001/CXDA003. No selected C
-   rejections remain; broader Annex facilities have separate documented goals.
-3. Current TCTouch and local ImpDef gaps for the selected support-blocked probes
-   are repaired; broader protocol/applicability work requires its own selection.
-4. Retain explicit unsupported-feature boundaries and promote complete cases
-   as features or defects are resolved.
+The runner checks complete REPORT output, case identity, process status,
+timeouts and source/snapshot integrity. The 135 executable C passes and 26
+independent B grades join the regular ACATS label. The raw snapshot records
+compiler behavior, including exact rejection diagnostics. The independent
+grader checks required locations and legal controls for B tests.
+[Commands and grading boundaries](../tests/acats/baseline/README.md).
 
-The baseline runner tests enforce strict REPORT completion/identity, raw B
-observation boundaries, crash/timeout handling and source/snapshot integrity.
-Its 135 executable C passes and the independent grader's 26 complete B passes
-(25 original foundations and one labelled local adapter) join normal ACATS
-labels. Snapshot stability of a recorded failure is not an ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
+Native priority cases such as CXD1001 and CXDA003 depend on host scheduling
+capabilities. See the [ceiling-locking contract](ceiling-locking.md) and
+[annex follow-up goals](selected-annex-followups.md).
 
 ## Case inventory
 
@@ -479,6 +247,238 @@ report.
 | [CXD1001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxd/cxd1001.a) | D.1, D.5.1 | Executable PASS | System priority bounds/default and dynamic base priority Set/Get; P9 task services |
 | [CXC7006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxc/cxc7006.a) | C.7.3, 7.6 | Executable PASS | Specific/fallback handler selection, normal/abort/exception causes, task-local finalization and activation failures; P9 task termination |
 
+## Historical increments
+
+Counts and unsupported prerequisites in this section describe the builds at
+each checkpoint. Use the case inventory above for recorded outcomes.
+
+### Non-tasking legality increment (Phase 8)
+
+Unchanged B33101A/B34001B/B34002B/B37004A/B460001/BC60001 now grade PASS.
+The [audit](legality-audit.md) distinguishes compiler repairs from diagnostic
+and location review. The raw cohort still contains 26 rejected B observations;
+only these six diagnostic streams change, with all C outcomes unchanged and all
+149 upstream hashes intact. The independent grading report has 17 PASS and
+nine FAIL; the nine blocked full sources retain P9 prerequisite owners.
+
+### Support-protocol increment (Phase 8)
+
+C761004 now passes unchanged after TCTouch Flush/Validate support. C940005 and
+C940010 pass unchanged with local ImpDef task-progress delays. The remaining
+142 raw observations and all 149 upstream hashes are unchanged. The detailed
+[grading contract, failed cases and support boundaries](acats-grading.md) distinguish
+harness completion from the language defects and unsupported prerequisites
+exposed by 15 failed B-tests. Older increment counts below describe their
+historical snapshots.
+
+### Current-subset adoption audit (Phase 8)
+
+The [bounded adoption review](acats-adoption.md) adds 16 sources selected before
+probing: seven Size/mapping/generic cases, five Ada 2005 null-exclusion cases and
+four formal-subprogram matching/default/literal cases. Fifteen execute unchanged
+as PASS. CC3605A stops at line 248's access-to-array subtype constraint, the
+existing limitation also recorded for C761010; it remains a baseline-only exact
+rejection observation. No generic-profile conformance pass is inferred from its
+partial source. The original 129 observations are unchanged, and the expanded
+145-case snapshot validates all 149 source hashes. No compiler/runtime or
+support-adapter changes were made.
+
+### Access-subtype record constraints (Phase 8)
+
+C37003A and C37006A now execute unchanged as PASS. Designated-record
+constraints reuse captured discriminant values and check non-null access values
+at value boundaries, including component initialization and conversion.
+[Contract and local cross-unit/tasking coverage](access-subtype-constraints.md).
+All other outcomes remain unchanged; B37004A has updated, ungraded diagnostics
+where its previously unsupported access constraint is now analyzed.
+
+### Discrete-range observations (Phase 8)
+
+C35003A, C36104A/B, C36180A, C37002A, C41207A and C43204A now execute
+unchanged as PASS. They cover range attributes, explicit subtype ranges,
+null-range compatibility, declaration-time checks and call/qualified bounds.
+C3A2003 passes separately in the focused selection. [Contract](discrete-ranges.md).
+
+The complete 129-case refresh also observes the already available REPORT
+adapter: C41104A, C54A07A and C760011 pass; C35502C/C64005C now reach missing
+ASCII declarations. C940005/C940010 reach missing services in the partial
+ImpDef unit, recorded as compile rejections. No adapter or predefined-library
+implementation changed in this increment. B-probes remain ungraded.
+
+### Interface-formal observations (Phase 6g)
+
+B394A01/B394A02 and F394A00 add two unchanged Ada 2005 legality probes for
+progenitor kinds and limited descendants, including generic formals. The whole
+sources reject on unsupported concurrent syntax as well, so their observations
+remain ungraded, with exact diagnostics under the baseline label. They are not
+legality passes. All original 123 observations, including the 79 executable
+passes, are unchanged. Local `genericinterface*` covers the isolated legality
+rules, legal controls, dispatch, category matching, callbacks and nested/library
+replay; existing C394002/C394003 retain their strict inheritance passes.
+
+Synchronized-derived-formal follow-up adds unchanged B394A03–B394A05 for task,
+protected and synchronized ancestry, including formal extensions. They remain
+ungraded because full sources also contain unsupported Phase 9 constructs.
+B394A02 loses two obsolete formal-syntax parser diagnostics; the other 124
+previous observations are unchanged. `genericsynchronized*` isolates the new
+static contracts, legal controls, tags/callbacks and nested/library replay.
+
+### Null-default observation (Phase 6g)
+
+BC60001 adds one unchanged Ada 2005 null-default legality source. Its frozen
+B_REJECTED_UNGRADED observation contains the four illegal function/abstract
+null-default syntax errors; parsing errors prevent semantic grading of the
+remaining legal and intrinsic-convention cases. Local `genericnull*` isolates
+those cases, including Access restrictions through aliases/forwarding. All 128
+previous observations were unchanged; at that increment the cohort had 79 PASS,
+16 compile rejections, eight harness blockers and 26 ungraded B observations.
+
+### Reviewed repairs
+
+Phase 6h retains all 129 observations unchanged. Its new strict executable
+C651001 selection lives alongside this baseline and checks nonreturning
+procedure completion. Assertion/check policies and their conservative check
+retention are documented in the [contract](pragmas-and-checks.md).
+
+Phase 6g promotes C393013, C640001 and C760010 to executable PASS, unchanged.
+C393013 runs the complete null-extension controlling-result scenario through
+generic and private extensions, including private overrides. C640001 exercises
+tagged generic callbacks and redispatch. C760010 verifies controlled lifetimes
+and explicit/implicit exception propagation through tagged private formals.
+C393013 now uses `acats.backfill_c393013`; its frozen-rejection probe is removed.
+C540001 now passes unchanged after enumeration-literal function actuals,
+expanded character names (`Pkg.'A'`) and static related-enumeration conversions.
+The complete case-expression scenario is registered as `acats.backfill_c540001`.
+It is the only changed observation at this increment: all other 128 observations
+remained unchanged; the cohort then had 80 executable passes.
+
+The Phase 6f backfill adds 16 C-tests from the same pinned archive, preserving
+all 18 imported files byte-for-byte, including the F392D00/F393A00 foundations.
+Fifteen initially passed unchanged and joined the normal suite: C394002/C394003 (limited and
+nonlimited interfaces), C393001/C393012/C393A02/C393A03/C393A06 (abstract
+operations and dispatch), C392004/C392010/C392011/C392D01/C392D02 (conversions,
+controlling parameters/results and private primitives), C391001/C391003
+(discriminated/local extensions) and C390011 (generic-instance tags).
+C390010 now also passes unchanged and joins the normal suite. Constrained
+class-wide views retain captured discriminant constraints and check access/value
+boundaries; parent and extension variants select independently, including
+`others`, and ancestor discriminants initialize after their child dependencies.
+`classwideconstraints` and `taggedvariantgroups` cover the repairs in whole/per-unit/
+deterministic modes with four workers. All original 106 observations remain
+unchanged at that milestone; the expanded cohort then had 76 executable passes.
+
+Before this backfill, the final Phase 6f interface milestone retained all 106 observations:
+60 executable passes, 18 legal-source rejections, eight support blockers and
+20 ungraded B observations. Its local interface scenarios are documented in the
+[interface contract](interfaces.md); no new upstream pass is inferred from them.
+
+The tagged/private-view milestone promotes unchanged C3A0007, C432001, C432004
+and C760009 to PASS. C760011 now reaches REPORT.Ident_Char (P8); C761010 gets
+past unknown-discriminant views and exposes access-subtype and dependent
+controlled-array restrictions. The cohort is now 60 PASS, 18 compile rejections,
+eight harness blockers and 20 ungraded B observations. Strict-selection
+C3A0009 and C761012 also pass unchanged; C3A0013 now executes as PASS
+after the Phase 7 range-attribute array-declaration prerequisite. See the
+[tagged/private-view contract](tagged-discriminants.md).
+
+The next 6f overriding/null/access-result milestone retains all 106 exact
+observations: 56 executable passes, 23 legal-source rejections, seven support
+blockers and 20 ungraded B observations. No additional case is promoted by this
+change; the snapshot's compiler fingerprint is refreshed. Focused execution and
+legality scenarios are documented in the
+[overriding/null-procedure contract](overriding-null-procedures.md).
+
+C460006 now passes unchanged after the first 6f item. Abstract operations use
+inherited dispatch slots, concrete types must override abstract obligations,
+and supported record extensions accept ordinary record aggregates. The case's
+view-conversion, object-renaming and assignment checks pass. `abstractsubprograms`,
+`abstractinheritance` and `abstract*errors` provide focused execution and legality
+controls. B840001 remains ungraded; three legal record-extension aggregates
+no longer produce unsupported-aggregate diagnostics.
+
+All five original executable failures now pass unchanged.
+
+C34001A/C34001D/C34002A now pass unchanged after the 6f-prelude repair:
+scalar `'Value` returns and checks `S'Base` (RM 3.5(53)), rather than the
+first subtype's static or captured bounds. `derivedscalaroperations` covers
+base-range operations, inherited constraints, conversions, receiving-context
+checks and four tasks in whole/per-unit/deterministic modes. The snapshot and
+strict ACATS selection include these three reviewed promotions.
+
+C761006 also passes unchanged after disjoint controlled assignment began
+adjusting the actual target directly (RM 7.6(21), 7.6.1(16)). Overlapping
+assignments retain owned snapshots. `controlledadjustment` checks component and
+parent failures, cleanup/recovery, overlapping slices, initialization and
+deallocation, including class-wide assignment and four tasks. Runtime ownership
+checks and the Ada regression pass with ASan/UBSan on the C runtime.
+
+C840001/C84008A/C84009A now pass after the operator-visibility repair.
+Predefined operators participate in scope hiding; expanded calls resolve
+implicit operators, and use type follows the type's identity through subtypes.
+`operatorvisibility` and `operator*visibilityerrors` cover private/body/child
+contexts, qualified calls, homographs and diagnostics in whole/per-unit/
+deterministic modes, with four tasks and compiler ASan/UBSan checks.
+
+B840001 remains ungraded. Additional missing-use diagnostics at lines 266, 270
+and 290 correspond to upstream ERROR markers; private-child legal controls
+remain accepted. This is not a substitute for the Phase 8 B-test grader.
+C730004 now also passes after the full-view limitedness repair described below.
+
+Legal-source rejections still need review: some hit explicit later roadmap
+features, while others expose missing behavior in completed areas.
+
+B36002A now produces 12 diagnostics for its mixed constrained/boxed index
+definitions, at the first mismatching index of each declaration (RM 3.6(2–6)).
+The shared parser check also covers anonymous arrays and generic formals.
+`arrayindexerrors` covers both orders, subtype marks, raw ranges, enumeration/
+Boolean indices, three dimensions and recovery; `arrayindexlegality` checks
+legal constrained/boxed definitions, runtime bounds, null arrays and generic
+instantiations in whole/per-unit/deterministic modes. Compiler ASan/UBSan
+checks pass. The B observation remains ungraded; no strict ACATS C-case is
+promoted by this legality repair.
+
+C83022A/C83024A and related C64004G/C64005A/C64005B now pass unchanged
+after enclosing-name lookup was repaired (RM 4.1.3(10–13)). `enclosingnames`
+and `enclosingnameerrors` cover hidden objects, parameters, defaults, nested
+blocks/loops, generic current instances, callable-prefix ambiguity and
+non-enclosing/value-use rejections, including captured frames and four tasks
+in whole/per-unit/deterministic modes. Compiler ASan/UBSan checks pass for
+these fixtures and all five unchanged upstream cases.
+C41103A now also passes after resolving array/function prefixes and preserving
+slice bounds, as described below. C54A07A and C64005C retain REPORT
+Ident_Char blockers; C64005C also needs the predefined ASCII package (P7/P8).
+Their changed diagnostics are recorded without claiming executable passes.
+
+C540002 now passes unchanged after selector resolution began applying its
+any-discrete-type context before binding (RM 5.4(4)). `caseselector` and
+`caseselectorerrors` cover direct/generic calls, discrete scalar categories,
+subtype preservation, single evaluation, private views and genuine ambiguity;
+choices do not supply selector context. Whole/per-unit/deterministic execution,
+four tasks and compiler ASan/UBSan checks pass.
+
+C49022C now passes unchanged after adding the mixed root real/integer
+multiplying profiles (RM 4.5.5(17)). Converted named numbers expose their
+universal numeric type (RM 3.3.2). `realnumbers` and `realnumbererrors` cover
+exact arithmetic, conversion boundaries, fixed contexts, forbidden profiles,
+static failures and evaluation limits in whole/per-unit/deterministic modes,
+with four tasks and compiler ASan/UBSan. The strict selection includes this
+reviewed promotion.
+
+C41103A/C41105A/C730004/C73002A now pass unchanged. Array-result prefixes
+participate in index/call overload resolution; nested slice indexing retains
+its own lower bound. Nested package bodies see enclosing body declarations
+without leaking them to clients. Concatenation/equality use a visible nonlimited
+full view. Visible partial-view discriminants and class-wide use-type marks are
+also repaired; C37006A and C760011 then retained independent prerequisites.
+Both now execute unchanged as PASS after their subsequent increments.
+`supportedrejections`/`supportedrejectionerrors` cover legal and rejection
+controls in whole/per-unit/deterministic modes, with four tasks and compiler
+ASan/UBSan. All four new passes join the strict selection.
+
+The [remaining-rejections audit](supported-rejections.md) records concrete
+prerequisites. Removing a prerequisite still requires rerunning the unchanged
+compound case before promotion.
+
 ### Standard/System follow-up
 
 The ASCII prerequisite is implemented. Unchanged C54A03A and C64005C now pass
@@ -497,7 +497,7 @@ entry callable renaming, concurrent interfaces, requeue or source abort. The
 snapshot now records 115 C passes, three C compilation rejections, one C runtime
 failure and 26 ungraded B rejections; B conformance grades are unchanged.
 
-## Phase 9 requeue/abort audit
+### Phase 9 requeue/abort audit
 
 A complete 145-case observation retains 115 executable C passes, three legal C
 rejections, one C runtime failure and 26 raw ungraded B rejections. The stale
@@ -508,7 +508,7 @@ is unchanged at 17 PASS and nine FAIL; neither return test is promoted. No
 upstream source or grading policy was changed, and these results are not general
 requeue/abort coverage. Local source/native controls supply that evidence.
 
-## Concurrent discriminants and callable views (Phase 9)
+### Concurrent discriminants and callable views (Phase 9)
 
 Eight cases selected before probing now execute unchanged with complete REPORT
 success: C910001/C940012/C940015 (discriminants and dependent private payloads),
@@ -522,7 +522,7 @@ blockers are removed. Their exact observations and independent grade snapshots
 are refreshed without changing grading policies; both still FAIL. B grades
 remain 17 PASS / nine FAIL. Earlier sections retain their historical counts.
 
-## Concurrent interface increment (Phase 9)
+### Concurrent interface increment (Phase 9)
 
 C940017 was selected before probing and now passes unchanged with the complete
 REPORT/TCTouch protocol. Its protected-interface procedures, functions and
@@ -538,7 +538,7 @@ grade snapshots were reviewed under unchanged policies; all five still grade
 FAIL. The independent B total remains 17 PASS / nine FAIL. Rejection alone is
 not a legality pass; earlier sections retain their historical counts.
 
-## Task-services increment (Phase 9)
+### Task-services increment (Phase 9)
 
 Six Ada 95/2005 sources were selected before probing. CXC7003, CXDA001,
 CXDA002 and CXD1001 pass unchanged: controlled attribute Set_Value/Reinitialize,
@@ -554,7 +554,7 @@ selection has 128 executable passes, five legal-source rejections, one executabl
 failure and 26 ungraded B rejections. The independent B policy remains unchanged.
 [Task-services contract](task-services.md).
 
-## Task-termination increment (Phase 9)
+### Task-termination increment (Phase 9)
 
 Unchanged CXC7006 was selected before probing. Its first five-second execution
 observation timed out because the source's sequential delay groups exceed six
@@ -569,90 +569,24 @@ The selection now has 161 cases and 165 hash-verified sources, with 129 executab
 passes, five compile rejections, one runtime failure and 26 ungraded B rejections.
 Earlier sections retain historical counts. [Contract](task-termination.md).
 
+### Baseline table refresh (Phase 12)
 
-## Baseline table refresh (Phase 12)
+The refresh reconciled 161 inventory rows, 22 area totals and 26 independent
+grades with the manifest and snapshots, and verified all 165 vendored source
+hashes. At that checkpoint there were 130 C passes, five C rejections and 26
+raw B rejections. All 26 independent B grades passed, including B394A01 with
+the local foundation adapter.
 
-The current inventory and area totals are reconciled with all 161 manifest
-cases, the raw snapshot and the independent 26-case grading report. C85005A and
-C85005B are executable PASS, C35502C's enumeration Value repair is retained,
-and 17 previously omitted rows now complete the inventory. Each B row records
-its independent grade while preserving its raw ungraded observation; B394A01's
-local foundation adapter is explicit. The current totals are 130 C passes,
-five C rejections and 26 raw B rejections; all 26 local B grades pass, including
-one adapted foundation. No upstream source, snapshot or grading policy changes
-are part of this documentation refresh.
+The same 161 cases and 26 independent B grades were checked at each follow-up.
+These Release and sanitizer counts describe the recorded Darwin arm64 runs.
 
-Validation: all 161 inventory rows, 22 area totals and 26 independent grades
-match their recorded data; source/hash validation passes for all 165 vendored
-files. Fresh C85005A/C85005B execution and the full B-grade snapshot check pass
-(three focused CTest checks). `git diff --check` passes.
+| Cases promoted to PASS | Repair | C passes / C rejections | Release checks | Focused ASan/UBSan |
+| --- | --- | --- | --- | --- |
+| C761010, CC3605A | [Controlled dependent arrays and designated-array constraints](controlled-dependent-arrays.md) | 132 / 3 | 2,170 | 42 |
+| C432005 | [Limited tagged concurrent components](tagged-concurrent-components.md) | 133 / 2 | 2,176 | 17 |
+| CXC7002 | [Packed signed arrays](packed-arrays.md) | 134 / 1 | 2,182 | 29 |
+| CXDA003 | [Hosted ceiling locking and interrupt priorities](ceiling-locking.md) | 135 / 0 | 2,197 | 36 |
 
-
-## Controlled dependent-array follow-up (Phase 12)
-
-C761010 now completes its original REPORT protocol in whole-program and per-unit
-builds. Access-to-array constraints check designated bounds, deferred indefinite
-constants wait for completion, and controlled dependent arrays construct elements
-without Adjust for aggregate initialization. Each managed component owns its
-storage and finalization chain, including copy/assignment and partial-failure
-cleanup. An available parent body is preferred before child bodies only when
-dependency and Elaborate_Body constraints permit that order. See the
-[contract and regressions](controlled-dependent-arrays.md).
-
-CC3605A also executes unchanged after the shared access-to-array constraint
-repair. These are the only two changed observations in the 161-case baseline:
-132 executable C passes, three C rejections and 26 raw B rejections. All 26
-independent B grades are retained. All 165 vendored source hashes remain intact;
-no upstream test or REPORT check was modified.
-
-Validation: the full Darwin arm64 Release suite passes 2,170/2,170 checks
-(308 ACATS). The 42 expanded ASan/UBSan checks and final concurrent control
-rechecks pass. The full baseline stability check, 161-row/22-area/26-grade
-reconciliation and source/hash validation pass.
-
-## C432005 follow-up
-
-Unchanged C432005 passes with limited tagged concurrent components enabled.
-The existing layout, construction, activation and cleanup paths already support
-these records; obsolete semantic guards prevented their use. Extensions with a
-nonlimited ancestor still reject limited components. Whole/separate-unit
-REPORT execution and focused concurrent controlled-lifetime controls cover the
-newly accepted surface. The current snapshot records 133 C passes, two C
-rejections and 26 raw ungraded B rejections. Upstream sources remain unchanged.
-
-Validation on Darwin arm64: all 2,176 Release checks pass (310 ACATS),
-17 focused ASan/UBSan checks and 312 legality controls pass. The complete
-161-case snapshot recheck is stable, all 26 independent B grades pass, and
-161 case rows/22 area totals/26 grades reconcile. Source/hash validation and
-`git diff --check` pass. QBE is unchanged.
-
-## CXC7002 follow-up
-
-Unchanged CXC7002 passes after generalizing packed-array descriptors and component
-access from Boolean bits to signed-integer widths. Whole/separate-unit execution
-checks the full REPORT protocol. Focused controls cover signed reads, masked
-cross-byte writes, copies/results, nested arrays, logical streams and concurrent
-callers; unsupported representations remain diagnosed. The current baseline has
-134 C passes, one C rejection (CXDA003) and 26 raw B rejections.
-
-Darwin arm64 validation passes all 2,182 Release checks (312 ACATS), all 313
-legality fixtures and 29 focused ASan/UBSan checks. The complete 161-case snapshot
-recheck and all 26 independent B grades pass. Only CXC7002 changes. All 165 source
-hashes and the 161-row/22-area/26-grade reconciliation pass; QBE is unchanged.
-
-## CXDA003 follow-up
-
-Unchanged CXDA003 passes after partition-wide locking-policy propagation and
-hosted interrupt-priority support. Default ceilings, active-priority checks,
-queued wakeups/cancellation and resource retention share the existing task
-context and protected-lock machinery. Whole/separate-unit REPORT execution and
-focused lifecycle, failure, adapter and metadata controls pass. The snapshot now
-records all 135 C-tests as PASS and 26 raw B rejections. Only CXDA003 changes.
-Native-dependent CTests skip unavailable scheduling configurations explicitly;
-raw bulk observations remain host-specific. Source hashes remain intact and QBE
-is unchanged. Darwin arm64 validation passed all 2,197 Release checks (314 ACATS),
-all 36 focused ASan/UBSan checks, the full 161-case baseline recheck and all 26
-independent B grades. The 161-row/22-area/26-grade table reconciliation and
-`git diff --check` pass. The user confirms that CI builds and tests pass on all configured platforms.
-Capability-gated native priority checks retain the documented skip behavior;
-privileged Linux FIFO/RR execution is not inferred from overall CI success.
+CXDA003 uses capability-gated native checks. The recorded local pass leaves
+privileged Linux FIFO/RR execution dependent on the native priority probe.
+[Host validation](host-validation.md).
